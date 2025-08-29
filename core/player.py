@@ -6,7 +6,7 @@ class Player:      # Caracteristicas de un jugador de Backgammon.
         #para__nombre__: Nombre del jugador.
         #para__color__: Color de las fichas del jugador ('blanco' o 'negro').
         
-        self.__nombre__ =__nombre__
+        self.__nombre__ =__nombre__ 
         self.__color__ = __color__
 
     def __str__(self):

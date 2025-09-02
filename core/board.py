@@ -93,3 +93,17 @@ class Tablero:
         elif color == 'N':
             if not self.__barra_negro__:
                 raise ValueError("No hay fichas negras en la barra para reincorporar.") 
+    def sacar_ficha(self, origen, color):
+        
+                            # Saca una ficha del tablero (cuando llega al final).
+                            # param origen: Índice de origen (0-23)
+                            # para color: 'B' o 'N' 
+        
+        if self.__puntos__[origen] and self.__puntos__[origen][-1] == color:
+            self.__puntos__[origen].pop()
+            if color == 'B':
+                self.__fuera_blanco__.append('B')
+            else:
+                self.__fuera_negro__.append('N')
+        else:
+            raise ValueError("No hay ficha de ese color para sacar.")

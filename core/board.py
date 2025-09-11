@@ -107,3 +107,14 @@ class Tablero:
                 self.__fuera_negro__.append('N')
         else:
             raise ValueError("No hay ficha de ese color para sacar.")
+    
+    def hay_ganador(self, color):
+        
+        #Se verifica si el jugador ha ganado (todas sus fichas fuera).
+        #param color: Color del jugador ('B' o 'N').
+        #return: True si ganó, False si no.
+        
+        if color == 'B':
+            return len(self.__fuera_blanco__) == 15
+        else:
+            return len(self.__fuera_negro__) == 15

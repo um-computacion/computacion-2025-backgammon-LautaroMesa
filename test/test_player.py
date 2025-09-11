@@ -17,5 +17,13 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(jugador2.__color__, "negro")
         self.assertEqual(str(jugador2), "Luis (negro)")
 
+    def test_casos_extremos(self):
+        """Test adicional para cubrir casos borde."""
+        jugador_vacio = Player("", "")
+        self.assertEqual(str(jugador_vacio), " ()")
+        
+        jugador_largo = Player("NombreMuyLargo", "ColorEspecial")
+        self.assertEqual(str(jugador_largo), "NombreMuyLargo (ColorEspecial)")
+
 if __name__ == "__main__":
     unittest.main()

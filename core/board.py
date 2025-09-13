@@ -77,7 +77,9 @@ class Tablero:
         # Capturar la ficha
         ficha_capturada = self.__puntos__[punto].pop()
         if color == 'B':
-            self
+            self.__barra_negro__.append(ficha_capturada)
+        else:
+            self.__barra_blanco__.append(ficha_capturada)
     def reincorporar_ficha(self, color, punto):
         #Reincorpora una ficha desde la barra al tablero.
         #color: Color de la ficha que se reincorpora ('B= Blanco' o 'N=Negro').
@@ -90,13 +92,18 @@ class Tablero:
             if not self.__barra_blanco__:
                 raise ValueError("No hay fichas blancas en la barra para reincorporar.")
             self.__barra_blanco__.pop()
+            self.__puntos__[punto].append('B')
         elif color == 'N':
             if not self.__barra_negro__:
-                raise ValueError("No hay fichas negras en la barra para reincorporar.") 
+                raise ValueError("No hay fichas negras en la barra para reincorporar.")
+            self.__barra_negro__.pop()
+            self.__puntos__[punto].append('N')
+        else:
+            raise ValueError("Color debe ser 'B' o 'N'.") 
     def sacar_ficha(self, origen, color):
         
                             # Saca una ficha del tablero (cuando llega al final).
-                            # param origen: Índice de origen (0-23)
+                            # para origen: Índice de origen (0-23)
                             # para color: 'B' o 'N' 
         
         if self.__puntos__[origen] and self.__puntos__[origen][-1] == color:
@@ -111,7 +118,7 @@ class Tablero:
     def hay_ganador(self, color):
         
         #Se verifica si el jugador ha ganado (todas sus fichas fuera).
-        #param color: Color del jugador ('B' o 'N').
+        #para color: Color del jugador ('B' o 'N').
         #return: True si ganó, False si no.
         
         if color == 'B':

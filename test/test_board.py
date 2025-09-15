@@ -54,8 +54,8 @@ class TestTablero(unittest.TestCase):
         # Verificar que la ficha se movió
         self.assertEqual(self.tablero._puntos_[0], ['N'])  # Queda una ficha
         self.assertEqual(self.tablero._puntos_[1], ['N'])  # Nueva ficha
-    
 
+  
 
 if __name__ == '__main__':
     unittest.main()

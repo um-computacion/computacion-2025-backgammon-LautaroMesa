@@ -34,6 +34,7 @@ class TestTablero(unittest.TestCase):
 
     def test_obtener_estado(self):
         #Verifica que obtener_estado devuelve el estado correcto del tablero
+        estado = self.tablero.obtener_estado() 
         self.assertEqual(len(estado), 24)
         self.assertEqual(estado[0], ['N', 'N'])
         self.assertEqual(estado[23], ['B', 'B'])
@@ -45,5 +46,16 @@ class TestTablero(unittest.TestCase):
             self.tablero.mostrar_tablero()
         except Exception as e:
             self.fail(f"mostrar_tablero() lanzó una excepción: {e}")
+    def test_mover_ficha_valido(self):
+        #Se verifica que se pueda mover una ficha válidamente.
+        # Mover ficha negra del punto 0 al punto 1
+        self.tablero.mover_ficha(0, 1, 'N')
+        
+        # Verificar que la ficha se movió
+        self.assertEqual(self.tablero._puntos_[0], ['N'])  # Queda una ficha
+        self.assertEqual(self.tablero._puntos_[1], ['N'])  # Nueva ficha
+    
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -25,4 +25,8 @@ class Player:      # Caracteristicas de un jugador de Backgammon.
         #return: Color del jugador ('blanco' o 'negro').
         return self.__color__
      
-    
+    def __str__(self):
+        # Devuelve una representación en texto del jugador.
+        # return: Cadena con nombre y color.
+      
+        return f"{self.__nombre__} ({self.__color__})"

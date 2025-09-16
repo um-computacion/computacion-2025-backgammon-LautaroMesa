@@ -10,12 +10,55 @@ class game:
         # para __nombre__jugador2__: nombre del segundo jugador
     
         self.__jugador1__ = Player(__nombre__jugador1__, "blanco")
-        self.__jugador2__ = Player(__nombre__jugador2__, "Negro")
+        self.__jugador2__ = Player(__nombre__jugador2__, "negro")
         self.__tablero__ = Tablero()
-        self.__dado1__ = Dado()
-        self.__dado2__ = Dado() 
-        self.__turno__ = self.__jugador1__  # Indica de que el jugador 1 empieza porque es la ficha blanca
-        self.__turno__.establecer_turno(True)   # El jugador 1 (blanco) empieza
-        self.__jugador2__.establecer_turno(False)  # El jugador 2
+        self.__dados__ = Dado()  # Un solo objeto Dado que maneja ambos dados
+        self.__turno_actual__ = self.__jugador1__  # El jugador 1 empieza el juego porque tiene las fichas blancas
+        self.__juego_terminado__ = False
+        self.__ganador__ = None
+        
+        self.__jugador1__.establecer_turno(True)   # Blanco empieza
+        self.__jugador2__.establecer_turno(False)  # Negro espera
 
+    def mostrar_jugador1(self):
+        return self.__jugador1__
     
+    def mostrar_jugador2(self):
+        return self.__jugador2__ 
+    
+    def mostrar_jugador_actual(self):
+        #Devuelve el jugador que tiene el turno actual
+        
+        return self.__turno_actual__
+    def mostrar_dados(self):
+        # Se devuelve el dado para empezar el juego 
+        return self.__dados__
+    
+    def cambiar_turno(self):
+        #Cambia el turno al siguiente jugador.
+        
+        if self.__turno_actual__ == self.__jugador1__:
+            self.__turno_actual__ = self.__jugador2__
+            self.__jugador1__.establecer_turno(False)
+            self.__jugador2__.establecer_turno(True)
+        else:
+            self.__turno_actual__ = self.__jugador1__
+            self.__jugador2__.establecer_turno(False)
+            self.__jugador1__.establecer_turno(True)
+    def tirar_dados(self):
+        # Tira los dados para el turno actual
+        
+        
+        return self.__dados__.tirar()   # return: Tupla con los valores de ambos dados
+    def mover_ficha(self, __origen__, __destino__):
+        # Mueve una ficha en el tablero para el jugador actual.
+        #__origen__: Punto de origen (0-23).
+        #__destino__: Punto de destino (0-23).
+
+        if self.__juego_terminado__:
+            raise ValueError("El juego ya ha terminado.")
+        
+        color = 'B' if self.__turno_actual__.obtener_color() == 'blanco' else 'N'
+        self.__tablero__.mover_ficha(__origen__, __destino__, color)
+
+

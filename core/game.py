@@ -16,9 +16,6 @@ class game:
         self.__turno_actual__ = self.__jugador1__  # El jugador 1 empieza el juego porque tiene las fichas blancas
         self.__juego_terminado__ = False
         self.__ganador__ = None
-        
-        self.__jugador1__.establecer_turno(True)   # Blanco empieza
-        self.__jugador2__.establecer_turno(False)  # Negro espera
 
     def mostrar_jugador1(self):
         return self.__jugador1__
@@ -35,16 +32,11 @@ class game:
         return self.__dados__
     
     def cambiar_turno(self):
-        #Cambia el turno al siguiente jugador.
-        
+       #Cambia el turno al siguiente jugador 
         if self.__turno_actual__ == self.__jugador1__:
             self.__turno_actual__ = self.__jugador2__
-            self.__jugador1__.establecer_turno(False)
-            self.__jugador2__.establecer_turno(True)
         else:
             self.__turno_actual__ = self.__jugador1__
-            self.__jugador2__.establecer_turno(False)
-            self.__jugador1__.establecer_turno(True)
     def tirar_dados(self):
         # Tira los dados para el turno actual
         

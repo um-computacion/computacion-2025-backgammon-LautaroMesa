@@ -51,10 +51,10 @@ class Tablero:
         if origen < 0 or origen > 23 or destino < 0 or destino > 23:
             raise ValueError("Índices de puntos deben estar entre 0 y 23.")
         
-        if not self.__puntos__[origen] or self.__puntos__[origen][-1] != color:
+        elif not self.__puntos__[origen] or self.__puntos__[origen][-1] != color:
             raise ValueError("No hay ficha del color especificado en el punto de origen.")
         
-        if len(self.__puntos__[destino]) >= 2 and self.__puntos__[destino][-1] != color:
+        elif len(self.__puntos__[destino]) >= 2 and self.__puntos__[destino][-1] != color:
             raise ValueError("Movimiento inválido: el punto de destino está bloqueado por fichas del oponente.")
         
         # Mover la ficha
@@ -68,10 +68,10 @@ class Tablero:
         if punto < 0 or punto > 23:
             raise ValueError("Índice de punto debe estar entre 0 y 23.")
         
-        if not self.__puntos__[punto] or self.__puntos__[punto][-1] == color:
+        elif not self.__puntos__[punto] or self.__puntos__[punto][-1] == color:
             raise ValueError("No hay ficha del oponente en el punto especificado.")
         
-        if len(self.__puntos__[punto]) > 1:
+        elif len(self.__puntos__[punto]) > 1:
             raise ValueError("No se puede capturar: más de una ficha del oponente en el punto.")
         
         # Capturar la ficha
@@ -88,7 +88,7 @@ class Tablero:
         if punto < 0 or punto > 23:
             raise ValueError("Índice de punto debe estar entre 0 y 23.")
         
-        if color == 'B':
+        elif color == 'B':
             if not self.__barra_blanco__:
                 raise ValueError("No hay fichas blancas en la barra para reincorporar.")
             self.__barra_blanco__.pop()

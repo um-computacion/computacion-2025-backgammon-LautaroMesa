@@ -52,5 +52,22 @@ class game:
         
         color = 'B' if self.__turno_actual__.obtener_color() == 'blanco' else 'N'
         self.__tablero__.mover_ficha(__origen__, __destino__, color)
-
-
+    
+    def verificar_victoria(self):
+        
+        # Verifica si hay un ganador en el juego
+        # return: True si el juego terminó, False si continúa
+        
+        if self.__tablero__.hay_ganador('B'):
+            self.__juego_terminado__ = True
+            self.__ganador__ = self.__jugador1__
+            return True
+        elif self.__tablero__.hay_ganador('N'):
+            self.__juego_terminado__ = True
+            self.__ganador__ = self.__jugador2__
+            return True
+        
+        return False
+    def obtener_ganador(self):
+        # Devuelve el jugador ganador si el juego ya se termino 
+        return self.__ganador__

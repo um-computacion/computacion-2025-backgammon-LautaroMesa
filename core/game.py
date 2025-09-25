@@ -52,7 +52,51 @@ class game:
         
         color = 'B' if self.__turno_actual__.obtener_color() == 'blanco' else 'N'
         self.__tablero__.mover_ficha(__origen__, __destino__, color)
-    
+    def capturar_ficha_enemiga(self, __punto__):
+        # Captura una ficha enemiga en un punto especifico
+        # __punto__: Punto donde capturar la ficha (0-23)
+        # return: True si se capturó, False si no.   
+        color = 'B' if self.__turno_actual__.obtener_color() == 'blanco' else 'N'
+        
+        try:
+            # Usar el método capturar_ficha de Tablero
+            self.__tablero__.capturar_ficha(__punto__, color)
+            print(f"Ficha enemiga capturada en punto {__punto__}")
+            return True
+        except ValueError as e:
+            print(f"No se pude capturar: {e}")
+            return False
+
+    def reincorporar_ficha_desde_barra(self, __punto__):
+        # Reincorpora una ficha desde la barra al tablero
+        # __punto__: es el punto donde se debe reincorporar la ficha (0-23)
+        # return: True si se reincorporó, False si no
+        color = 'B' if self.__turno_actual__.obtener_color() == 'blanco' else 'N'
+        
+        try:
+            # Usar el método reincorporar_ficha de Tablero
+            self.__tablero__.reincorporar_ficha(color, __punto__)
+            print(f"Ficha reincorporada desde la barra al punto {__punto__}")
+            return True
+        except ValueError as e:
+            print(f"No se pudo reincorporar: {e}")
+            return False
+    def sacar_ficha_del_tablero(self, __origen__):
+        # Saca una ficha del tablero cuando llega al final
+        # __origen__: Punto de origen (0-23)
+        # return: True si se sacó, False si no
+        
+        color = 'B' if self.__turno_actual__.obtener_color() == 'blanco' else 'N'
+        
+        try:
+            # Usar el método sacar_ficha de Tablero
+            self.__tablero__.sacar_ficha(__origen__, color)
+            print(f"Ficha sacada del tablero desde punto {__origen__}")
+            return True
+        except ValueError as e:
+            print(f"No se pudo sacar la ficha: {e}")
+            return False
+
     def verificar_victoria(self):
         
         # Verifica si hay un ganador en el juego

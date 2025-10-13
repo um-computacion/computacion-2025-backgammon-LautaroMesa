@@ -105,3 +105,30 @@ class CLI:
         print("ayuda        - Mostrar esta ayuda")
         print("salir        - Salir del juego")
         print("=" * 50)
+    def __manejar_turno__(self):
+        
+    #Se gestiona un turno completo de juego usando solo métodos de game.
+
+        jugador_actual = self.__juego__.mostrar_jugador_actual()
+        
+        print(f"\n{'-'*60}")
+        print(f"Turno de: {jugador_actual.obtener_nombre()} ({jugador_actual.obtener_color()})")
+        print(f"{'-'*60}")
+        
+        # Tirar dados
+        input("Presiona Enter para tirar los dados...")
+        dados_resultado = self.__juego__.tirar_dados()
+        print(f"Resultado de los dados: {dados_resultado}")
+        
+        # Mostrar tablero
+        self.__mostrar_tablero__()
+        
+        # Procesar comandos
+        print(f"\n{jugador_actual.obtener_nombre()}, ¿que deseas hacer?")
+        print("Escribe 'ayuda' para ver todos los comandos disponibles.")
+        
+        while True:
+            comando = input("\nComando: ")
+            if not self.__procesar_comando__(comando):
+                break
+    

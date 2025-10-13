@@ -131,3 +131,51 @@ class CLI:
             comando = input("\nComando: ")
             if not self.__procesar_comando__(comando):
                 break
+    def ejecutar(self):
+        # Método principal que inicia y ejecuta el juego.
+        # Este es el método que se llama desde el punto de entrada.
+        
+        self.__limpiar_pantalla__()
+        self.__mostrar_banner__()
+        
+        print("\nIniciando nueva partida de Backgammon...")
+        
+        try:
+            # Configuración de jugadores
+            nombres = self.__obtener_nombres_jugadores__()
+            self.__juego__ = game(nombres[0], nombres[1])
+            
+            print(f"\nPartida iniciada entre {nombres[0]} y {nombres[1]}")
+            print("\nConsejos:")
+            print("• Escribe 'ayuda' para ver los comandos disponibles")
+            print("• Escribe 'tablero' para ver el estado actual")
+            print("• Escribe 'estado' para ver informacion del juego")
+            
+            # Bucle principal del juego
+            while not self.__juego__.verificar_victoria():
+                self.__manejar_turno__()
+                self.__juego__.cambiar_turno()
+            
+            # Mostrar resultado final
+            self.__mostrar_tablero__()
+            ganador = self.__juego__.obtener_ganador()
+            
+            if ganador:
+                print("\n" + "="*60)
+                print(f"¡FELICIDADES {ganador.obtener_nombre().upper()}!")
+                print("Has ganado la partida de Backgammon")
+                print("="*60)
+            else:
+                print("\nLa partida termino sin ganador definido.")
+            
+            input("\nPresiona Enter para finalizar...")
+            
+        except KeyboardInterrupt:
+            print("\n\nJuego interrumpido por el usuario.")
+        except Exception as e:
+            print(f"\nError durante el juego: {e}")
+
+# Punto de entrada para ejecutar el CLI directamente
+if __name__ == '__main__':
+    cli = CLI()
+    cli.ejecutar()

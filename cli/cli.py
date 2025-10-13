@@ -41,7 +41,7 @@ class CLI:
             print()
             
             print("-" * 70)
-            print("                         BARRA")
+            print("BARRA")
             print("-" * 70)
             
             # Mostrar puntos 12-1 (parte inferior)
@@ -65,3 +65,43 @@ class CLI:
             
         except Exception as e:
             print(f"Error al mostrar tablero: {e}")
+    def __obtener_nombres_jugadores__(self):
+        """
+        Solicita y valida los nombres de los jugadores.
+        
+        Devuelve:
+            tuple: Nombres del jugador 1 (blancas) y jugador 2 (negras).
+        """
+        print("\nConfiguracion de jugadores:")
+        
+        while True:
+            nombre1 = input("Nombre del Jugador 1 (Fichas Blancas): ").strip()
+            if nombre1:
+                break
+            print("El nombre no puede estar vacio.")
+        
+        while True:
+            nombre2 = input("Nombre del Jugador 2 (Fichas Negras): ").strip()
+            if nombre2:
+                break
+            print("El nombre no puede estar vacio.")
+        
+        return nombre1, nombre2
+    def __mostrar_ayuda__(self):
+        
+        # muestra la lista de comandos disponibles y su descripción.
+    
+        print("\n" + "=" * 50)
+        print("COMANDOS DISPONIBLES")
+        print("=" * 50)
+        print("tablero      - Mostrar el tablero actual")
+        print("dados        - Mostrar resultado de los dados")
+        print("mover        - Mover una ficha")
+        print("capturar     - Capturar ficha enemiga")
+        print("reincorporar - Reincorporar ficha desde barra")
+        print("sacar        - Sacar ficha del tablero")
+        print("estado       - Ver estado completo del juego")
+        print("pasar        - Pasar turno")
+        print("ayuda        - Mostrar esta ayuda")
+        print("salir        - Salir del juego")
+        print("=" * 50)

@@ -43,7 +43,7 @@ class CLI:
             print("-" * 70)
             print("BARRA")
             print("-" * 70)
-            
+                    
             # Mostrar puntos 12-1 (parte inferior)
             print("Fichas:", end="  ")
             for i in range(12, 0, -1):

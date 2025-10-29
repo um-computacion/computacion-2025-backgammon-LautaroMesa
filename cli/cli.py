@@ -1,15 +1,4 @@
-# cli/main.py
-"""
-CLI interactivo para Backgammon - Computación 2025
-
-- Interfaz por menú (sin comandos libres).
-- Tablero ASCII: 24 puntos en cuatro cuadrantes de 6.
-  * Fila superior (izq→der): 13..24   (24 arriba a la derecha)
-  * Fila inferior (izq→der): 12..1    (1  abajo a la derecha)
-- Cambia de turno automáticamente tras mover/capturar/reincorporar/sacar.
-- Usa solo la API pública de Game (SRP/SOLID).
-"""
-
+#CLI DE BACKGAMMON
 from typing import Optional
 from core.game import Game
 
@@ -18,7 +7,7 @@ class CLI:
     def __init__(self):
         self.__juego__: Optional[Game] = None
 
-    # ---------- utilidades ----------
+    # UTILIDADES
 
     def __leer_linea__(self, prompt: str) -> str:
         return input(prompt)
@@ -35,7 +24,7 @@ class CLI:
             return None
         return n
 
-    # ---------- presentación ----------
+    # PRESENTACION 
 
     def __encabezado_turno__(self) -> None:
         try:
@@ -165,7 +154,7 @@ class CLI:
         except Exception as e:
             print(f"Error al mostrar estado: {e}")
 
-    # ---------- menú y flujo ----------
+    # EL MENU Y FLUJO DE EL JUEGO
 
     def __menu_turno__(self) -> bool:
         print("\nSeleccione una opción:")
@@ -259,5 +248,63 @@ class CLI:
             return True
 
         return True
+    def __manejar_turno__(self) -> None:
+        self.__encabezado_turno__()
+        self.__leer_linea__("Presione Enter para tirar los dados... ")
+        try:
+            resultado = self.__juego__.tirar_dados()
+            print(f"Resultado de los dados: {resultado}")
+        except Exception as e:
+            print(f"Error al tirar los dados: {e}")
+
+        self.__mostrar_tablero__()
+
+        while True:
+            continuar = self.__menu_turno__()
+            if not continuar:
+                break
+
+    def __configurar_jugadores__(self) -> tuple[str, str]:
+        print("\nConfiguración de jugadores")
+        while True:
+            j1 = self.__leer_linea__("Jugador 1 (fichas blancas): ").strip()
+            if j1:
+                break
+            print("El nombre no puede estar vacío.")
+        while True:
+            j2 = self.__leer_linea__("Jugador 2 (fichas negras): ").strip()
+            if j2:
+                break
+            print("El nombre no puede estar vacío.")
+        return j1, j2
+
+    def ejecutar(self) -> None:
+        print("===========================================")
+        print("        BACKGAMMON - INTERFAZ CLI")
+        print("===========================================")
+        n1, n2 = self.__configurar_jugadores__()
+
+        try:
+            self.__juego__ = Game(n1, n2)
+            print(f"Partida iniciada entre {n1} y {n2}.")
+
+            while not self.__juego__.verificar_victoria():
+                self.__manejar_turno__()
+                self.__juego__.cambiar_turno()
+
+            self.__mostrar_tablero__()
+            ganador = self.__juego__.obtener_ganador()
+            if ganador:
+                print(f"El juego ha finalizado. Ganador: {ganador.obtener_nombre()}")
+            else:
+                print("El juego terminó sin ganador definido.")
+        except SystemExit:
+            pass
+        except KeyboardInterrupt:
+            print("\nInterrupción por teclado. Fin del juego.")
+        except Exception as e:
+            print(f"\nError durante la ejecución: {e}")
+            print("Verifique la implementación del core y vuelva a intentar.")
 if __name__ == "__main__":
     CLI().ejecutar()
+

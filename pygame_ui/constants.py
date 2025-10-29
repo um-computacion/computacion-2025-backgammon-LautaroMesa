@@ -38,4 +38,4 @@ FONT_SIZE_SMALL = 14
 
 # Configuración de animaciones
 ANIMATION_SPEED = 5
-FPS = 60
+FPS = 180

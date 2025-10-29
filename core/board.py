@@ -43,7 +43,7 @@ class Tablero:
         for i, punto in enumerate(self.__puntos__):
             print(f"Punto {i+1}: {punto}")
     def mover_ficha(self, origen, destino, color):
-        #Mueve una ficha de un punto a otro si el movimiento es válido.
+        #Mueve una ficha de un punto a otro si el movimiento es válido. 
         #origen: Índice del punto de origen (0-23).
         #destino: Índice del punto de destino (0-23).
         #color: Color de la ficha que se mueve ('B' o 'N').

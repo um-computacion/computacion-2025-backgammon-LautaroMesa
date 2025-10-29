@@ -2,7 +2,7 @@ from core.player import Player
 from core.board import Tablero
 from core.dice import Dado 
 
-class game:
+class Game:
     # En esta clase se representa el juego en si del backgammon 
     def __init__(self, __nombre__jugador1__, __nombre__jugador2__):
         # Inicializa el juego con dos jugadores y un tablero.
@@ -115,3 +115,25 @@ class game:
     def obtener_ganador(self):
         # Devuelve el jugador ganador si el juego ya se termino 
         return self.__ganador__
+    def obtener_estado_tablero(self):
+        
+        # Obtiene el estado actual del tablero para visualización.
+        '''
+        Este método expone el estado del tablero de forma controlada,
+        permitiendo que las interfaces (CLI, Pygame) accedan a la información
+        sin romper el encapsulamiento.
+        '''        
+        estado = self.__tablero__.obtener_estado()
+        estado_dict = {}
+        
+        for i, punto in enumerate(estado):
+            if punto:  # Solo incluir puntos que tienen fichas
+                estado_dict[i] = punto
+                
+        return estado_dict
+
+    def mostrar_tablero_consola(self):
+        """
+        Muestra el tablero en consola usando el método del tablero.
+        """
+        self.__tablero__.mostrar_tablero()

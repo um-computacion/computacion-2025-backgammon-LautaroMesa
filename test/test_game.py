@@ -1,14 +1,16 @@
+from core.game import Game
 import unittest
 from unittest.mock import patch
-from core.game import game
 
 class TestGame(unittest.TestCase):
+    """Pruebas unitarias para la clase Game (cobertura 100%)."""
     
     def setUp(self):
-        self.juego = game("Lautaro", "Eric")
+        """Configura una instancia de Game nueva para cada test."""
+        self.juego = Game("Lautaro", "Eric")
 
     def test_inicializacion_completa(self):
-        # Verificar TODOS los atributos iniciales (una sola vez)
+        """Verifica todos los atributos iniciales de Game."""
         jugador1 = self.juego.mostrar_jugador1()
         jugador2 = self.juego.mostrar_jugador2()
         
@@ -22,81 +24,83 @@ class TestGame(unittest.TestCase):
         self.assertIsNotNone(self.juego.mostrar_dados())
 
     def test_cambiar_turno_ambas_direcciones(self):
-        # Cubrir AMBAS ramas del if/else en cambiar_turno
+        """Verifica que cambiar_turno() alterna entre jugador1 y jugador2."""
         self.assertEqual(self.juego.__turno_actual__, self.juego.__jugador1__)
         
-        # Cambio a jugador2
         self.juego.cambiar_turno()
         self.assertEqual(self.juego.__turno_actual__, self.juego.__jugador2__)
         
-        # Cambio a jugador1
         self.juego.cambiar_turno()
         self.assertEqual(self.juego.__turno_actual__, self.juego.__jugador1__)
 
     def test_tirar_dados(self):
-        # Ejecutar la línea de tirar_dados
+        """Verifica que tirar_dados() devuelve una tupla de 2 valores."""
         resultado = self.juego.tirar_dados()
         self.assertIsInstance(resultado, tuple)
         self.assertEqual(len(resultado), 2)
 
     def test_mover_ficha_ambos_colores_y_error(self):
-        # Cubrir AMBAS ramas del if en mover_ficha + la excepción
+        """Verifica que mover_ficha() pasa el color correcto ('B'/'N') al tablero."""
         
         # Jugador blanco (turno inicial)
-        with patch.object(self.juego.__tablero__, 'mover_ficha'):
-            self.juego.mover_ficha(23, 20)  # Ejecuta línea del color 'B'
+        with patch.object(self.juego.__tablero__, 'mover_ficha') as mock_mover:
+            self.juego.mover_ficha(23, 20)
+            mock_mover.assert_called_with(23, 20, 'B') # Verifica que se llamó con 'B'
         
         # Jugador negro
         self.juego.cambiar_turno()
-        with patch.object(self.juego.__tablero__, 'mover_ficha'):
-            self.juego.mover_ficha(0, 3)  # Ejecuta línea del color 'N'
+        with patch.object(self.juego.__tablero__, 'mover_ficha') as mock_mover:
+            self.juego.mover_ficha(0, 3)
+            mock_mover.assert_called_with(0, 3, 'N') # Verifica que se llamó con 'N'
         
         # Juego terminado (excepción)
         self.juego.__juego_terminado__ = True
         with self.assertRaises(ValueError):
-            self.juego.mover_ficha(0, 1)  # Ejecuta línea de la excepción
+            self.juego.mover_ficha(0, 1) 
 
     @patch('builtins.print')
-    def test_capturar_ficha_ambos_casos(self, mock_print):
-        # Caso exitoso
-        with patch.object(self.juego.__tablero__, 'capturar_ficha'):
-            resultado = self.juego.capturar_ficha_enemiga(15)
-            self.assertTrue(resultado)  # Ejecuta return True
-        
-        # Caso con error
-        with patch.object(self.juego.__tablero__, 'capturar_ficha', 
-                         side_effect=ValueError("Error")):
-            resultado = self.juego.capturar_ficha_enemiga(5)
-            self.assertFalse(resultado)  # Ejecuta return False
-
-    @patch('builtins.print')
-    def test_reincorporar_ficha_ambos_casos(self, mock_print):
-        # Caso exitoso
-        with patch.object(self.juego.__tablero__, 'reincorporar_ficha'):
+    def test_reincorporar_ficha_todos_casos(self, mock_print):
+        """Verifica reincorporar_ficha para ambos jugadores (éxito y error)."""
+        # --- Jugador 1 (Blanco) ---
+        with patch.object(self.juego.__tablero__, 'reincorporar_ficha') as mock_reincorporar:
             resultado = self.juego.reincorporar_ficha_desde_barra(8)
             self.assertTrue(resultado)
+            mock_reincorporar.assert_called_with('B', 8)
         
-        # Caso con error
         with patch.object(self.juego.__tablero__, 'reincorporar_ficha', 
-                         side_effect=ValueError("Error")):
+                          side_effect=ValueError("Error")):
             resultado = self.juego.reincorporar_ficha_desde_barra(10)
             self.assertFalse(resultado)
+            
+        # --- Jugador 2 (Negro) ---
+        self.juego.cambiar_turno()
+        with patch.object(self.juego.__tablero__, 'reincorporar_ficha') as mock_reincorporar:
+            resultado = self.juego.reincorporar_ficha_desde_barra(3)
+            self.assertTrue(resultado)
+            mock_reincorporar.assert_called_with('N', 3) # Verifica color 'N'
 
     @patch('builtins.print')
-    def test_sacar_ficha_ambos_casos(self, mock_print):
-        # Caso exitoso
+    def test_sacar_ficha_todos_casos(self, mock_print):
+        """Verifica sacar_ficha para ambos jugadores (éxito y error)."""
+        # --- Jugador 1 (Blanco) ---
         with patch.object(self.juego.__tablero__, 'sacar_ficha'):
-            resultado = self.juego.sacar_ficha_del_tablero(0)
+            resultado = self.juego.sacar_ficha_del_tablero(20)
             self.assertTrue(resultado)
         
-        # Caso con error
         with patch.object(self.juego.__tablero__, 'sacar_ficha', 
-                         side_effect=ValueError("Error")):
+                          side_effect=ValueError("Error")):
             resultado = self.juego.sacar_ficha_del_tablero(23)
             self.assertFalse(resultado)
 
+        # --- Jugador 2 (Negro) ---
+        self.juego.cambiar_turno()
+        with patch.object(self.juego.__tablero__, 'sacar_ficha') as mock_sacar:
+            resultado = self.juego.sacar_ficha_del_tablero(3)
+            self.assertTrue(resultado)
+            mock_sacar.assert_called_with(3, 'N') # Verifica color 'N'
+
     def test_verificar_victoria_todos_casos(self):
-        # TODOS los casos de victoria en un solo test
+        """Verifica los 3 escenarios de victoria: sin ganador, gana B, gana N."""
         
         # Caso 1: Sin ganador
         with patch.object(self.juego.__tablero__, 'hay_ganador', return_value=False):
@@ -105,29 +109,67 @@ class TestGame(unittest.TestCase):
         
         # Caso 2: Jugador blanco gana
         with patch.object(self.juego.__tablero__, 'hay_ganador', 
-                         side_effect=lambda color: color == 'B'):
+                          side_effect=lambda color: color == 'B'):
             resultado = self.juego.verificar_victoria()
             self.assertTrue(resultado)
             self.assertEqual(self.juego.__ganador__, self.juego.__jugador1__)
         
-        # Reset para caso 3
-        self.juego.__juego_terminado__ = False
-        self.juego.__ganador__ = None
+        self.juego = Game("L", "E") # Reset
         
         # Caso 3: Jugador negro gana
         with patch.object(self.juego.__tablero__, 'hay_ganador', 
-                         side_effect=lambda color: color == 'N'):
+                          side_effect=lambda color: color == 'N'):
             resultado = self.juego.verificar_victoria()
             self.assertTrue(resultado)
             self.assertEqual(self.juego.__ganador__, self.juego.__jugador2__)
 
-    def test_obtener_ganador_ambos_casos(self):
+    def test_obtener_ganador(self):
+        """Cubre obtener_ganador() cuando no hay ganador y cuando sí hay."""
         # Sin ganador
         self.assertIsNone(self.juego.obtener_ganador())
         
         # Con ganador
         self.juego.__ganador__ = self.juego.__jugador1__
         self.assertEqual(self.juego.obtener_ganador(), self.juego.__jugador1__)
+
+    def test_obtener_estado_tablero(self):
+        """Cubre obtener_estado_tablero()."""
+        estado_crudo = [
+            ['N', 'N'], # Punto 0
+            [],           # Punto 1
+            ['B']         # Punto 2
+        ]
+        estado_crudo.extend([[] for _ in range(21)])
+        
+        with patch.object(self.juego.__tablero__, 'obtener_estado', return_value=estado_crudo):
+            estado_dict = self.juego.obtener_estado_tablero()
+            
+            estado_esperado = {
+                0: ['N', 'N'],
+                2: ['B']
+            }
+            self.assertEqual(estado_dict, estado_esperado)
+            self.assertNotIn(1, estado_dict)
+
+    @patch('builtins.print')
+    def test_mostrar_tablero_consola(self, mock_print):
+        """Cubre mostrar_tablero_consola()."""
+        with patch.object(self.juego.__tablero__, 'mostrar_tablero') as mock_mostrar:
+            self.juego.mostrar_tablero_consola()
+            mock_mostrar.assert_called_once()
+
+    def test_jugador_actual_tiene_fichas_en_barra(self):
+        """Cubre jugador_actual_tiene_fichas_en_barra()."""
+        # Turno del Jugador 1 ('B')
+        with patch.object(self.juego.__tablero__, 'obtener_fichas_barra', return_value=2) as mock_barra:
+            self.assertTrue(self.juego.jugador_actual_tiene_fichas_en_barra())
+            mock_barra.assert_called_with('B')
+
+        # Turno del Jugador 2 ('N')
+        self.juego.cambiar_turno()
+        with patch.object(self.juego.__tablero__, 'obtener_fichas_barra', return_value=0) as mock_barra:
+            self.assertFalse(self.juego.jugador_actual_tiene_fichas_en_barra())
+            mock_barra.assert_called_with('N')
 
 if __name__ == '__main__':
     unittest.main()

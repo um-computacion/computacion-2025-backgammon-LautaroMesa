@@ -1,168 +1,212 @@
 import unittest
 from core.board import Tablero
+from core.checker import Ficha 
+from unittest.mock import patch
 
 class TestTablero(unittest.TestCase):
-    
+   
     def setUp(self):
-        # Configura un tablero nuevo para cada test
+        """Configura un tablero nuevo para cada test."""
         self.tablero = Tablero()
 
     def test_inicializacion_tablero(self):
-        # Verifica inicialización correcta del tablero
-        # Verificar 24 puntos
+        """Verifica que las fichas estén en sus posiciones iniciales correctas."""
         self.assertEqual(len(self.tablero.__puntos__), 24)
+        estado = self.tablero.obtener_estado()
         
-        # Verificar fichas negras en posiciones iniciales
-        self.assertEqual(self.tablero.__puntos__[0], ['N', 'N'])
-        self.assertEqual(self.tablero.__puntos__[11], ['N'] * 5)
-        self.assertEqual(self.tablero.__puntos__[16], ['N'] * 3)
-        self.assertEqual(self.tablero.__puntos__[18], ['N'] * 5)
+        self.assertEqual(estado[0], ['N', 'N'])
+        self.assertEqual(estado[11], ['N'] * 5)
+        self.assertEqual(estado[16], ['N'] * 3)
+        self.assertEqual(estado[18], ['N'] * 5)
         
-        # Verificar fichas blancas en posiciones iniciales
-        self.assertEqual(self.tablero.__puntos__[23], ['B', 'B'])
-        self.assertEqual(self.tablero.__puntos__[12], ['B'] * 5)
-        self.assertEqual(self.tablero.__puntos__[7], ['B'] * 3)
-        self.assertEqual(self.tablero.__puntos__[5], ['B'] * 5)
+        self.assertEqual(estado[23], ['B', 'B'])
+        self.assertEqual(estado[12], ['B'] * 5)
+        self.assertEqual(estado[7], ['B'] * 3)
+        self.assertEqual(estado[5], ['B'] * 5)
 
     def test_obtener_estado(self):
-        # Verifica que obtener_estado devuelve los puntos
+        """Verifica que obtener_estado() convierte objetos Ficha a strings ('B'/'N')."""
         estado = self.tablero.obtener_estado()
-        self.assertEqual(estado, self.tablero.__puntos__)
-
-    def test_mostrar_tablero(self):
-        # Verifica que mostrar_tablero no lance errores
-        # Solo verificar que no falle
-        self.tablero.mostrar_tablero()
+        self.assertIsInstance(self.tablero.__puntos__[0][0], Ficha)
+        self.assertEqual(estado[0][0], 'N')
+        self.assertEqual(estado[0], ['N', 'N'])
 
     def test_mover_ficha_valido(self):
-        # Verifica movimiento válido
+        """Verifica un movimiento simple y válido de una ficha."""
         self.tablero.mover_ficha(0, 1, 'N')
-        self.assertEqual(self.tablero.__puntos__[0], ['N'])  # Queda una
-        self.assertEqual(self.tablero.__puntos__[1], ['N'])  # Se movió una
+        estado = self.tablero.obtener_estado()
+        self.assertEqual(estado[0], ['N'])
+        self.assertEqual(estado[1], ['N'])
+
+    def test_mover_ficha_con_captura_automatica_blanca(self):
+        """Verifica que mover_ficha captura un 'blot' 'B'."""
+        self.tablero.__puntos__[5] = [Ficha('B')]
+        self.tablero.mover_ficha(0, 5, 'N')
+        estado = self.tablero.obtener_estado()
+        self.assertEqual(estado[5], ['N'])
+        self.assertEqual(len(self.tablero.__barra_blanco__), 1)
+
+    def test_mover_ficha_con_captura_negra(self):
+        """Verifica la captura de un 'blot' 'N' (cubre la rama 'else')."""
+        self.tablero.__puntos__[20] = [Ficha('N')]
+        self.tablero.mover_ficha(23, 20, 'B')
+        estado = self.tablero.obtener_estado()
+        self.assertEqual(estado[20], ['B'])
+        self.assertEqual(len(self.tablero.__barra_negro__), 1)
 
     def test_mover_ficha_indices_invalidos(self):
-        # Verifica validación de índices
+        """Verifica error si el origen o destino están fuera de [0, 23]."""
         with self.assertRaises(ValueError) as context:
             self.tablero.mover_ficha(-1, 5, 'N')
         self.assertEqual(str(context.exception), "Índices de puntos deben estar entre 0 y 23.")
-
-    def test_mover_ficha_sin_ficha(self):
-        # Verifica error cuando no hay ficha del color
+        
         with self.assertRaises(ValueError) as context:
-            self.tablero.mover_ficha(1, 2, 'N')  # Punto 1 vacío
+            self.tablero.mover_ficha(0, 24, 'N')
+        self.assertEqual(str(context.exception), "Índices de puntos deben estar entre 0 y 23.")
+
+    def test_mover_ficha_sin_ficha_o_color_incorrecto(self):
+        """Verifica error si el origen está vacío o la ficha es del oponente."""
+        with self.assertRaises(ValueError) as context:
+            self.tablero.mover_ficha(1, 2, 'N')
+        self.assertEqual(str(context.exception), "No hay ficha del color especificado en el punto de origen.")
+        
+        with self.assertRaises(ValueError) as context:
+            self.tablero.mover_ficha(0, 1, 'B')
         self.assertEqual(str(context.exception), "No hay ficha del color especificado en el punto de origen.")
 
     def test_mover_ficha_destino_bloqueado(self):
-        # Verifica bloqueo por fichas del oponente
-        self.tablero.__puntos__[1] = ['B', 'B']  # Bloquear punto 1
-        
+        """Verifica que mover a un punto bloqueado (2+ fichas op.) lanza un error."""
+        self.tablero.__puntos__[1] = [Ficha('B'), Ficha('B')]
         with self.assertRaises(ValueError) as context:
             self.tablero.mover_ficha(0, 1, 'N')
-        self.assertEqual(str(context.exception), "Movimiento inválido: el punto de destino está bloqueado por fichas del oponente.")
-
-    def test_capturar_ficha_valido(self):
-        # Verifica captura válida
-        self.tablero.__puntos__[1] = ['N']  # Una ficha negra sola
-        self.tablero.capturar_ficha(1, 'B')
-        
-        self.assertEqual(self.tablero.__puntos__[1], [])
-        self.assertEqual(self.tablero.__barra_negro__, ['N'])
-
-    def test_capturar_ficha_indice_invalido(self):
-        # Verifica validación de índice en captura
-        with self.assertRaises(ValueError) as context:
-            self.tablero.capturar_ficha(-1, 'B')
-        self.assertEqual(str(context.exception), "Índice de punto debe estar entre 0 y 23.")
-
-    def test_capturar_ficha_sin_oponente(self):
-        # Verifica error sin ficha del oponente
-        with self.assertRaises(ValueError) as context:
-            self.tablero.capturar_ficha(1, 'B')  # Punto vacío
-        self.assertEqual(str(context.exception), "No hay ficha del oponente en el punto especificado.")
-
-    def test_capturar_ficha_multiples(self):
-        # Verifica error con múltiples fichas
-        with self.assertRaises(ValueError) as context:
-            self.tablero.capturar_ficha(0, 'B')  # Punto 0 tiene 2 fichas negras
-        self.assertEqual(str(context.exception), "No se puede capturar: más de una ficha del oponente en el punto.")
-
-    def test_reincorporar_ficha_blanco(self):
-        # Verifica reincorporación ficha blanca
-        self.tablero.__barra_blanco__.append('B')
-        self.tablero.reincorporar_ficha('B', 5)
-        
-        self.assertEqual(self.tablero.__barra_blanco__, [])
-        self.assertEqual(self.tablero.__puntos__[5][-1], 'B')
-
-    def test_reincorporar_ficha_negro(self):
-        # Verifica reincorporación ficha negra
-        self.tablero.__barra_negro__.append('N')
-        self.tablero.reincorporar_ficha('N', 10)
-        
-        self.assertEqual(self.tablero.__barra_negro__, [])
-        self.assertEqual(self.tablero.__puntos__[10][-1], 'N')
+        self.assertEqual(str(context.exception), "Movimiento inválido: el punto de destino está bloqueado.")
 
     def test_reincorporar_ficha_indice_invalido(self):
-        # Verifica validación de índice en reincorporación
+        """Cubre el "Paso 1" de reincorporar_ficha."""
+        self.tablero.__barra_blanco__.append(Ficha('B'))
         with self.assertRaises(ValueError) as context:
-            self.tablero.reincorporar_ficha('B', -1)
+            self.tablero.reincorporar_ficha('B', 24)
         self.assertEqual(str(context.exception), "Índice de punto debe estar entre 0 y 23.")
 
-    def test_reincorporar_ficha_barra_vacia_blanco(self):
-        # Verifica error con barra blanca vacía
-        with self.assertRaises(ValueError) as context:
-            self.tablero.reincorporar_ficha('B', 5)
-        self.assertEqual(str(context.exception), "No hay fichas blancas en la barra para reincorporar.")
-
-    def test_reincorporar_ficha_barra_vacia_negro(self):
-        # Verifica error con barra negra vacía
-        with self.assertRaises(ValueError) as context:
-            self.tablero.reincorporar_ficha('N', 5)
-        self.assertEqual(str(context.exception), "No hay fichas negras en la barra para reincorporar.")
-
     def test_reincorporar_ficha_color_invalido(self):
-        # Verifica error con color inválido
+        """Cubre el "Paso 2" de reincorporar_ficha."""
         with self.assertRaises(ValueError) as context:
             self.tablero.reincorporar_ficha('X', 5)
         self.assertEqual(str(context.exception), "Color debe ser 'B' o 'N'.")
 
-    def test_sacar_ficha_blanco(self):
-        # Verifica sacar ficha blanca
-        self.tablero.sacar_ficha(23, 'B')
-        
-        self.assertEqual(self.tablero.__puntos__[23], ['B'])  # Queda una
-        self.assertEqual(self.tablero.__fuera_blanco__, ['B'])
-
-    def test_sacar_ficha_negro(self):
-        # Verifica sacar ficha negra
-        self.tablero.sacar_ficha(0, 'N')
-        
-        self.assertEqual(self.tablero.__puntos__[0], ['N'])  # Queda una
-        self.assertEqual(self.tablero.__fuera_negro__, ['N'])
-
-    def test_sacar_ficha_sin_color(self):
-        # Verifica error al sacar sin ficha del color
+    def test_reincorporar_ficha_barra_vacia(self):
+        """Cubre el "Paso 3" de reincorporar_ficha."""
         with self.assertRaises(ValueError) as context:
-            self.tablero.sacar_ficha(1, 'B')  # Punto vacío
+            self.tablero.reincorporar_ficha('B', 5)
+        self.assertEqual(str(context.exception), "No hay fichas blancas en la barra para reincorporar.")
+        
+        with self.assertRaises(ValueError) as context:
+            self.tablero.reincorporar_ficha('N', 5)
+        self.assertEqual(str(context.exception), "No hay fichas negras en la barra para reincorporar.")
+
+    def test_reincorporar_ficha_destino_bloqueado(self):
+        """Cubre el "Paso 4" de reincorporar_ficha."""
+        self.tablero.__barra_negro__.append(Ficha('N'))
+        self.tablero.__puntos__[3] = [Ficha('B'), Ficha('B')]
+        
+        with self.assertRaises(ValueError) as context:
+            self.tablero.reincorporar_ficha('N', 3)
+        self.assertEqual(str(context.exception), "Movimiento inválido: el punto de destino está bloqueado.")
+
+    def test_reincorporar_ficha_con_captura_blanca(self):
+        """Cubre el "Paso 5" (rama 'if') de reincorporar_ficha."""
+        self.tablero.__barra_blanco__.append(Ficha('B'))
+        self.tablero.__puntos__[20] = [Ficha('N')]
+        self.tablero.reincorporar_ficha('B', 20)
+        self.assertEqual(self.tablero.__puntos__[20][0].obtener_color(), 'B')
+        self.assertEqual(len(self.tablero.__barra_negro__), 1)
+
+    def test_reincorporar_ficha_con_captura_negra(self):
+        """Cubre el "Paso 5" (rama 'else') de reincorporar_ficha."""
+        self.tablero.__barra_negro__.append(Ficha('N'))
+        self.tablero.__puntos__[3] = [Ficha('B')]
+        self.tablero.reincorporar_ficha('N', 3)
+        self.assertEqual(len(self.tablero.__barra_blanco__), 1)
+
+    def test_reincorporar_ficha_blanco_valido(self):
+        """Cubre el "Paso 6" (if) de reincorporar_ficha."""
+        self.tablero.__barra_blanco__.append(Ficha('B'))
+        self.tablero.reincorporar_ficha('B', 5)
+        self.assertEqual(self.tablero.__barra_blanco__, [])
+        self.assertEqual(self.tablero.__puntos__[5][-1].obtener_color(), 'B')
+
+    def test_reincorporar_ficha_negro_valido(self):
+        """Cubre el "Paso 6" (else) de reincorporar_ficha."""
+        self.tablero.__barra_negro__.append(Ficha('N'))
+        self.tablero.reincorporar_ficha('N', 10)
+        self.assertEqual(self.tablero.__barra_negro__, [])
+        self.assertEqual(self.tablero.__puntos__[10][-1].obtener_color(), 'N')
+
+    def test_sacar_ficha_valido_blanco(self):
+        """Verifica que sacar_ficha mueve una ficha blanca a 'fuera'."""
+        self.tablero.sacar_ficha(23, 'B')
+        self.assertEqual(len(self.tablero.__puntos__[23]), 1)
+        self.assertEqual(len(self.tablero.__fuera_blanco__), 1)
+        self.assertEqual(self.tablero.__fuera_blanco__[0].obtener_color(), 'B')
+
+    def test_sacar_ficha_valido_negro(self):
+        """Verifica que sacar_ficha mueve una ficha negra a 'fuera' (cubre 'else')."""
+        self.tablero.sacar_ficha(0, 'N')
+        self.assertEqual(len(self.tablero.__puntos__[0]), 1)
+        self.assertEqual(len(self.tablero.__fuera_negro__), 1)
+        self.assertEqual(self.tablero.__fuera_negro__[0].obtener_color(), 'N')
+
+    def test_sacar_ficha_error(self):
+        """Verifica el 'else' de sacar_ficha (error)."""
+        with self.assertRaises(ValueError) as context:
+            self.tablero.sacar_ficha(1, 'B')
+        self.assertEqual(str(context.exception), "No hay ficha de ese color para sacar.")
+        
+        with self.assertRaises(ValueError) as context:
+            self.tablero.sacar_ficha(0, 'B')
         self.assertEqual(str(context.exception), "No hay ficha de ese color para sacar.")
 
-    def test_hay_ganador_blanco_false(self):
-        # Verifica que blanco no ha ganado inicialmente
-        self.assertFalse(self.tablero.hay_ganador('B'))
-
-    def test_hay_ganador_blanco_true(self):
-        # Verifica victoria de blanco con 15 fichas fuera
-        self.tablero.__fuera_blanco__ = ['B'] * 15
+    def test_hay_ganador_todos_los_casos(self):
+        """Cubre todos los 4 casos de hay_ganador (Líneas 139-144)."""
+        # --- Pruebas para 'B' (Cubre 139, 141, 142) ---
+        
+        # Caso 1: Blanco GANA
+        self.tablero.__fuera_blanco__ = [Ficha('B') for _ in range(15)]
         self.assertTrue(self.tablero.hay_ganador('B'))
-
-    def test_hay_ganador_negro_false(self):
-        # Verifica que negro no ha ganado inicialmente
+        
+        # Caso 2: Blanco AÚN NO GANA
+        self.tablero.__fuera_blanco__ = [Ficha('B') for _ in range(10)]
+        self.assertFalse(self.tablero.hay_ganador('B'))
+        
+        # --- Pruebas para 'N' (Cubre 139, 141(F), 143, 144) ---
+        
+        # Caso 3: Negro GANA
+        self.tablero.__fuera_negro__ = [Ficha('N') for _ in range(15)]
+        self.assertTrue(self.tablero.hay_ganador('N'))
+        
+        # Caso 4: Negro AÚN NO GANA
+        self.tablero.__fuera_negro__ = [Ficha('N') for _ in range(5)]
         self.assertFalse(self.tablero.hay_ganador('N'))
 
-    def test_hay_ganador_negro_true(self):
-        # Verifica victoria de negro con 15 fichas fuera
-        self.tablero.__fuera_negro__ = ['N'] * 15
-        self.assertTrue(self.tablero.hay_ganador('N'))
+    def test_obtener_fichas_barra_ambos_casos(self):
+        """Verifica los métodos de conteo de fichas en barra."""
+        self.tablero.__barra_blanco__.append(Ficha('B'))
+        self.assertEqual(self.tablero.obtener_fichas_barra('B'), 1)
+        self.assertEqual(self.tablero.obtener_fichas_barra('N'), 0) # Cubre 'else'
+
+    def test_obtener_fichas_fuera_ambos_casos(self):
+        """Verifica los casos de obtener_fichas_fuera."""
+        self.tablero.__fuera_blanco__ = [Ficha('B') for _ in range(3)]
+        self.assertEqual(self.tablero.obtener_fichas_fuera('B'), 3)
+        
+        self.tablero.__fuera_negro__ = [Ficha('N') for _ in range(2)]
+        self.assertEqual(self.tablero.obtener_fichas_fuera('N'), 2) # Cubre 'else'
+
+    @patch('builtins.print')
+    def test_mostrar_tablero(self, mock_print):
+        """Cubre el método mostrar_tablero (Línea 79)."""
+        self.tablero.mostrar_tablero()
+        mock_print.assert_any_call("Punto 1: ['N', 'N']")
 
 if __name__ == '__main__':
     unittest.main()

@@ -33,75 +33,174 @@ class TestGame(unittest.TestCase):
         self.juego.cambiar_turno()
         self.assertEqual(self.juego.__turno_actual__, self.juego.__jugador1__)
 
-    def test_tirar_dados(self):
-        """Verifica que tirar_dados() devuelve una tupla de 2 valores."""
-        resultado = self.juego.tirar_dados()
-        self.assertIsInstance(resultado, tuple)
-        self.assertEqual(len(resultado), 2)
+    def test_tirar_dados_normal(self):
+        """Verifica que una tirada normal almacena 2 movimientos."""
+        # Mockeamos randint para que devuelva 3 y 5
+        with patch('core.dice.random.randint', side_effect=[3, 5]):
+            resultado = self.juego.tirar_dados()
+            self.assertEqual(resultado, (3, 5))
+            # Verifica que los movimientos disponibles se almacenaron
+            self.assertEqual(self.juego.__movimientos_disponibles__, [3, 5])
 
-    def test_mover_ficha_ambos_colores_y_error(self):
-        """Verifica que mover_ficha() pasa el color correcto ('B'/'N') al tablero."""
-        
-        # Jugador blanco (turno inicial)
+    def test_tirar_dados_dobles(self):
+        """Verifica que una tirada doble almacena 4 movimientos."""
+        # Mockeamos randint para que devuelva 4 y 4
+        with patch('core.dice.random.randint', side_effect=[4, 4]):
+            resultado = self.juego.tirar_dados()
+            self.assertEqual(resultado, (4, 4))
+            # Verifica que los 4 movimientos se almacenaron
+            self.assertEqual(self.juego.__movimientos_disponibles__, [4, 4, 4, 4])
+
+    def test_mover_ficha_valido_con_dados(self):
+        """Verifica un movimiento válido que consume un dado."""
+        # Damos manualmente los dados
+        self.juego.__movimientos_disponibles__ = [5]
+        # Mockeamos el tablero para que no falle
         with patch.object(self.juego.__tablero__, 'mover_ficha') as mock_mover:
-            self.juego.mover_ficha(23, 20)
-            mock_mover.assert_called_with(23, 20, 'B') # Verifica que se llamó con 'B'
-        
-        # Jugador negro
-        self.juego.cambiar_turno()
-        with patch.object(self.juego.__tablero__, 'mover_ficha') as mock_mover:
-            self.juego.mover_ficha(0, 3)
-            mock_mover.assert_called_with(0, 3, 'N') # Verifica que se llamó con 'N'
-        
-        # Juego terminado (excepción)
+            self.juego.mover_ficha(18, 13) # Movimiento 'B' de 5
+            mock_mover.assert_called_with(18, 13, 'B')
+        # Verifica que el dado fue consumido
+        self.assertEqual(self.juego.__movimientos_disponibles__, [])
+
+    def test_mover_ficha_juego_terminado(self):
+        """Verifica que no se puede mover si el juego terminó."""
         self.juego.__juego_terminado__ = True
         with self.assertRaises(ValueError):
-            self.juego.mover_ficha(0, 1) 
+            self.juego.mover_ficha(0, 1)
+
+    def test_mover_ficha_con_ficha_en_barra(self):
+        """Verifica que no se puede mover si hay fichas en la barra."""
+        # Mockeamos la función para que devuelva True
+        with patch.object(self.juego, 'jugador_actual_tiene_fichas_en_barra', return_value=True):
+            with self.assertRaises(ValueError) as context:
+                self.juego.mover_ficha(18, 13)
+            self.assertIn("Debe reincorporar", str(context.exception))
+
+    def test_mover_ficha_direccion_incorrecta(self):
+        """
+        Verifica que el movimiento falla si va en la dirección incorrecta.
+        (Cubre la nueva lógica de dirección en mover_ficha).
+        """
+        self.juego.__movimientos_disponibles__ = [5, 6] 
+        
+        # Caso 1: Blanco ('B') intentando moverse "hacia arriba" (ilegal)
+        with self.assertRaises(ValueError) as context:
+            self.juego.mover_ficha(18, 23) 
+        self.assertIn("solo pueden moverse a puntos menores", str(context.exception))
+
+        self.juego.cambiar_turno()
+        self.juego.__movimientos_disponibles__ = [5, 6]
+        
+        # Caso 2: Negro ('N') intentando moverse "hacia abajo" (ilegal)
+        with self.assertRaises(ValueError) as context:
+            self.juego.mover_ficha(5, 0)
+        self.assertIn("solo pueden moverse a puntos mayores", str(context.exception))
+
+    def test_mover_ficha_dado_incorrecto(self):
+        """Verifica que el movimiento falla si el dado no está disponible."""
+        self.juego.__movimientos_disponibles__ = [3, 5]
+        with self.assertRaises(ValueError) as context:
+            self.juego.mover_ficha(18, 17) # Movimiento de 1, pero solo tiene [3, 5]
+        self.assertIn("no está permitido por los dados", str(context.exception))
 
     @patch('builtins.print')
     def test_reincorporar_ficha_todos_casos(self, mock_print):
         """Verifica reincorporar_ficha para ambos jugadores (éxito y error)."""
-        # --- Jugador 1 (Blanco) ---
-        with patch.object(self.juego.__tablero__, 'reincorporar_ficha') as mock_reincorporar:
-            resultado = self.juego.reincorporar_ficha_desde_barra(8)
-            self.assertTrue(resultado)
-            mock_reincorporar.assert_called_with('B', 8)
+        self.juego.__movimientos_disponibles__ = [1, 3]
         
-        with patch.object(self.juego.__tablero__, 'reincorporar_ficha', 
-                          side_effect=ValueError("Error")):
-            resultado = self.juego.reincorporar_ficha_desde_barra(10)
-            self.assertFalse(resultado)
+        # --- Jugador 1 (Blanco) ---
+        # Mockeamos que SÍ tiene fichas en la barra
+        with patch.object(self.juego, 'jugador_actual_tiene_fichas_en_barra', return_value=True):
+            # Caso Éxito (Punto 0 -> necesita dado 1)
+            with patch.object(self.juego.__tablero__, 'reincorporar_ficha') as mock_reincorporar:
+                self.juego.reincorporar_ficha_desde_barra(0)
+                mock_reincorporar.assert_called_with('B', 0)
+                self.assertEqual(self.juego.__movimientos_disponibles__, [3]) # Dado 1 consumido
             
-        # --- Jugador 2 (Negro) ---
+            # Caso Error (Dado no disponible)
+            with self.assertRaises(ValueError) as context:
+                self.juego.reincorporar_ficha_desde_barra(1) # Necesita dado 2, solo tiene [3]
+            self.assertIn("no está permitido por los dados", str(context.exception))
+        
+        # Caso Error (No tiene fichas en la barra)
+        with patch.object(self.juego, 'jugador_actual_tiene_fichas_en_barra', return_value=False):
+            with self.assertRaises(ValueError) as context:
+                self.juego.reincorporar_ficha_desde_barra(0)
+            self.assertIn("No tiene fichas en la barra", str(context.exception))
+
+    def test_reincorporar_ficha_cuadrante_incorrecto(self):
+        """
+        Verifica que reincorporar falla si el punto no es el cuadrante de entrada.
+        """
+        self.juego.__movimientos_disponibles__ = [1, 2]
+        with patch.object(self.juego, 'jugador_actual_tiene_fichas_en_barra', return_value=True):
+        
+            # Caso 1: Blanco ('B') intentando reincorporarse fuera de 0-5
+            with self.assertRaises(ValueError) as context:
+                self.juego.reincorporar_ficha_desde_barra(10)
+            self.assertIn("solo pueden reincorporarse en puntos 0-5", str(context.exception))
+        
         self.juego.cambiar_turno()
-        with patch.object(self.juego.__tablero__, 'reincorporar_ficha') as mock_reincorporar:
-            resultado = self.juego.reincorporar_ficha_desde_barra(3)
-            self.assertTrue(resultado)
-            mock_reincorporar.assert_called_with('N', 3) # Verifica color 'N'
+        self.juego.__movimientos_disponibles__ = [1, 2]
+        
+        with patch.object(self.juego, 'jugador_actual_tiene_fichas_en_barra', return_value=True):
+            # Caso 2: Negro ('N') intentando reincorporarse fuera de 18-23
+            with self.assertRaises(ValueError) as context:
+                self.juego.reincorporar_ficha_desde_barra(10)
+            self.assertIn("solo pueden reincorporarse en puntos 18-23", str(context.exception))
 
     @patch('builtins.print')
     def test_sacar_ficha_todos_casos(self, mock_print):
         """Verifica sacar_ficha para ambos jugadores (éxito y error)."""
         # --- Jugador 1 (Blanco) ---
-        with patch.object(self.juego.__tablero__, 'sacar_ficha'):
-            resultado = self.juego.sacar_ficha_del_tablero(20)
-            self.assertTrue(resultado)
+        self.juego.__movimientos_disponibles__ = [1, 3] # Dado 1 para punto 23
         
-        with patch.object(self.juego.__tablero__, 'sacar_ficha', 
-                          side_effect=ValueError("Error")):
-            resultado = self.juego.sacar_ficha_del_tablero(23)
-            self.assertFalse(resultado)
+        # Caso Éxito
+        with patch.object(self.juego.__tablero__, 'sacar_ficha') as mock_sacar:
+            self.juego.sacar_ficha_del_tablero(23) # Necesita dado 1 (24-23)
+            mock_sacar.assert_called_with(23, 'B')
+            self.assertEqual(self.juego.__movimientos_disponibles__, [3]) # Dado 1 consumido
+
+        # Caso Error (Dado no disponible)
+        with self.assertRaises(ValueError) as context:
+            self.juego.sacar_ficha_del_tablero(20) # Necesita dado 4, solo tiene [3]
+        self.assertIn("no está permitido por los dados", str(context.exception))
 
         # --- Jugador 2 (Negro) ---
         self.juego.cambiar_turno()
+        self.juego.__movimientos_disponibles__ = [5, 6] # Dado 6 para punto 5
+        
         with patch.object(self.juego.__tablero__, 'sacar_ficha') as mock_sacar:
-            resultado = self.juego.sacar_ficha_del_tablero(3)
-            self.assertTrue(resultado)
-            mock_sacar.assert_called_with(3, 'N') # Verifica color 'N'
+            self.juego.sacar_ficha_del_tablero(5) # Necesita dado 6 (5+1)
+            mock_sacar.assert_called_with(5, 'N')
+            self.assertEqual(self.juego.__movimientos_disponibles__, [5]) # Dado 6 consumido
+
+    def test_sacar_ficha_cuadrante_incorrecto(self):
+        """
+        Verifica que sacar ficha falla si no es desde el cuadrante de salida.
+        """
+        self.juego.__movimientos_disponibles__ = [1, 2] 
+        
+        with self.assertRaises(ValueError) as context:
+            self.juego.sacar_ficha_del_tablero(10)
+        self.assertIn("solo pueden sacarse desde puntos 18-23", str(context.exception))
+
+        self.juego.cambiar_turno()
+        self.juego.__movimientos_disponibles__ = [1, 2]
+        
+        with self.assertRaises(ValueError) as context:
+            self.juego.sacar_ficha_del_tablero(10)
+        self.assertIn("solo pueden sacarse desde puntos 0-5", str(context.exception))
+
+    def test_sacar_ficha_con_ficha_en_barra(self):
+        """Verifica que no se puede sacar ficha si hay fichas en la barra."""
+        with patch.object(self.juego, 'jugador_actual_tiene_fichas_en_barra', return_value=True):
+            with self.assertRaises(ValueError) as context:
+                self.juego.sacar_ficha_del_tablero(23)
+            self.assertIn("Debe reincorporar", str(context.exception))
 
     def test_verificar_victoria_todos_casos(self):
         """Verifica los 3 escenarios de victoria: sin ganador, gana B, gana N."""
-        
         # Caso 1: Sin ganador
         with patch.object(self.juego.__tablero__, 'hay_ganador', return_value=False):
             resultado = self.juego.verificar_victoria()
@@ -125,29 +224,18 @@ class TestGame(unittest.TestCase):
 
     def test_obtener_ganador(self):
         """Cubre obtener_ganador() cuando no hay ganador y cuando sí hay."""
-        # Sin ganador
         self.assertIsNone(self.juego.obtener_ganador())
-        
-        # Con ganador
         self.juego.__ganador__ = self.juego.__jugador1__
         self.assertEqual(self.juego.obtener_ganador(), self.juego.__jugador1__)
 
     def test_obtener_estado_tablero(self):
         """Cubre obtener_estado_tablero()."""
-        estado_crudo = [
-            ['N', 'N'], # Punto 0
-            [],           # Punto 1
-            ['B']         # Punto 2
-        ]
+        estado_crudo = [['N', 'N'], [], ['B']]
         estado_crudo.extend([[] for _ in range(21)])
         
         with patch.object(self.juego.__tablero__, 'obtener_estado', return_value=estado_crudo):
             estado_dict = self.juego.obtener_estado_tablero()
-            
-            estado_esperado = {
-                0: ['N', 'N'],
-                2: ['B']
-            }
+            estado_esperado = {0: ['N', 'N'], 2: ['B']}
             self.assertEqual(estado_dict, estado_esperado)
             self.assertNotIn(1, estado_dict)
 
@@ -170,6 +258,15 @@ class TestGame(unittest.TestCase):
         with patch.object(self.juego.__tablero__, 'obtener_fichas_barra', return_value=0) as mock_barra:
             self.assertFalse(self.juego.jugador_actual_tiene_fichas_en_barra())
             mock_barra.assert_called_with('N')
+    def test_obtener_movimientos_disponibles(self):
+        """Prueba el nuevo 'getter' para los movimientos."""
+        # 1. Al inicio, la lista debe estar vacía
+        self.assertEqual(self.juego.obtener_movimientos_disponibles(), [])
+        
+        # 2. Después de asignarlos, debe devolverlos
+        self.juego.__movimientos_disponibles__ = [5, 5]
+        self.assertEqual(self.juego.obtener_movimientos_disponibles(), [5, 5])
+    
 
 if __name__ == '__main__':
     unittest.main()

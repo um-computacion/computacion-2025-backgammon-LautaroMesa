@@ -58,10 +58,6 @@ class Tablero:
         """
         Mueve una ficha de un punto a otro.
         La lógica de CAPTURA está integrada aquí.
-        
-        :param origen: Índice del punto de origen (0-23).
-        :param destino: Índice del punto de destino (0-23).
-        :param color: Color de la ficha que se mueve ('B' o 'N').
         """
         if origen < 0 or origen > 23 or destino < 0 or destino > 23:
             raise ValueError("Índices de puntos deben estar entre 0 y 23.")
@@ -72,7 +68,6 @@ class Tablero:
         if len(self.__puntos__[destino]) >= 2 and self.__puntos__[destino][-1].obtener_color() != color:
             raise ValueError("Movimiento inválido: el punto de destino está bloqueado.")
         
-        # Lógica de captura automática
         if len(self.__puntos__[destino]) == 1 and self.__puntos__[destino][0].obtener_color() != color:
             ficha_capturada = self.__puntos__[destino].pop()
             if ficha_capturada.obtener_color() == 'B':
@@ -80,39 +75,29 @@ class Tablero:
             else:
                 self.__barra_negro__.append(ficha_capturada)
         
-        # Mover la ficha
         ficha = self.__puntos__[origen].pop()
         self.__puntos__[destino].append(ficha)
 
     def reincorporar_ficha(self, color, punto):
         """
         Reincorpora una ficha desde la barra al tablero.
-        También maneja la captura de "blots" al reincorporar.
-        
-        :param color: Color de la ficha a reincorporar ('B' o 'N').
-        :param punto: Índice del punto donde se reincorpora (0-23).
         """
-        # 1. Validar índice
         if punto < 0 or punto > 23:
             raise ValueError("Índice de punto debe estar entre 0 y 23.")
         
-        # 2. Validar color
         if color not in ('B', 'N'):
             raise ValueError("Color debe ser 'B' o 'N'.")
         
-        # 3. Validar que haya fichas en la barra
         if color == 'B':
             if not self.__barra_blanco__:
                 raise ValueError("No hay fichas blancas en la barra para reincorporar.")
-        else:  # color == 'N'
+        else: 
             if not self.__barra_negro__:
                 raise ValueError("No hay fichas negras en la barra para reincorporar.")
         
-        # 4. Validar que el destino no esté bloqueado
         if len(self.__puntos__[punto]) >= 2 and self.__puntos__[punto][-1].obtener_color() != color:
             raise ValueError("Movimiento inválido: el punto de destino está bloqueado.")
         
-        # 5. Lógica de captura (si hay un blot)
         if len(self.__puntos__[punto]) == 1 and self.__puntos__[punto][0].obtener_color() != color:
             ficha_capturada = self.__puntos__[punto].pop()
             if ficha_capturada.obtener_color() == 'B':
@@ -120,20 +105,16 @@ class Tablero:
             else:
                 self.__barra_negro__.append(ficha_capturada)
         
-        # 6. Reincorporar la ficha
         if color == 'B':
             ficha = self.__barra_blanco__.pop()
             self.__puntos__[punto].append(ficha)
-        else:  # color == 'N'
+        else: 
             ficha = self.__barra_negro__.pop()
             self.__puntos__[punto].append(ficha)
 
     def sacar_ficha(self, origen, color):
         """
         Saca una ficha del tablero (cuando llega al final).
-        
-        :param origen: Índice del punto de origen (0-23).
-        :param color: Color de la ficha a sacar ('B' o 'N').
         """
         if self.__puntos__[origen] and self.__puntos__[origen][-1].obtener_color() == color:
             ficha = self.__puntos__[origen].pop()
@@ -147,9 +128,6 @@ class Tablero:
     def hay_ganador(self, color):
         """
         Verifica si el jugador ha ganado (todas sus fichas fuera).
-        
-        :param color: Color del jugador a verificar ('B' o 'N').
-        :return: True si ganó, False si no.
         """
         if color == 'B':
             return len(self.__fuera_blanco__) == 15
@@ -159,9 +137,6 @@ class Tablero:
     def obtener_fichas_barra(self, color):
         """
         Devuelve el número de fichas que un color tiene en la barra.
-        
-        :param color: Color a consultar ('B' o 'N').
-        :return: Entero con la cantidad de fichas.
         """
         if color == 'B':
             return len(self.__barra_blanco__)
@@ -171,11 +146,37 @@ class Tablero:
     def obtener_fichas_fuera(self, color):
         """
         Devuelve el número de fichas que un color tiene fuera del tablero.
-        
-        :param color: Color a consultar ('B' o 'N').
-        :return: Entero con la cantidad de fichas.
         """
         if color == 'B':
             return len(self.__fuera_blanco__)
         else:
             return len(self.__fuera_negro__)
+
+    # --- MÉTODO NUEVO ---
+    
+    def todas_las_fichas_en_casa(self, color: str) -> bool:
+        """
+        Verifica si todas las fichas activas de un jugador están 
+        en su cuadrante de casa.
+        """
+        if color == 'B':
+            # 1. No debe tener fichas en la barra
+            if len(self.__barra_blanco__) > 0:
+                return False
+            # 2. No debe tener fichas fuera de casa (puntos 0-17)
+            for i in range(18): # Puntos 0 al 17
+                for ficha in self.__puntos__[i]:
+                    if ficha.obtener_color() == 'B':
+                        return False # Encontró una ficha 'B' fuera de casa
+            return True
+        
+        else: # color == 'N'
+            # 1. No debe tener fichas en la barra
+            if len(self.__barra_negro__) > 0:
+                return False
+            # 2. No debe tener fichas fuera de casa (puntos 6-23)
+            for i in range(6, 24): # Puntos 6 al 23
+                for ficha in self.__puntos__[i]:
+                    if ficha.obtener_color() == 'N':
+                        return False # Encontró una ficha 'N' fuera de casa
+            return True

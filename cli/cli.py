@@ -142,7 +142,6 @@ class CLI:
 
     def __menu_turno__(self, *, tiene_fichas_en_barra: bool) -> bool:
         """
-        (ACTUALIZADO)
         Muestra un menú contextual basado en el estado del juego.
         """
         print("\nSeleccione una opción:")
@@ -178,7 +177,6 @@ class CLI:
                 return True
 
         else:
-            # --- MENÚ NORMAL (ACTUALIZADO) ---
             
             # 1. Preguntamos al 'core' si sacar fichas es legal
             puede_sacar = self.__juego__.jugador_puede_sacar_fichas()
@@ -202,7 +200,6 @@ class CLI:
             # 3. Mapeamos la opción a la acción correcta
             
             if opcion == 1:
-                # --- Acción: Mover ficha ---
                 origen = self.__leer_entero_en_rango__("Punto origen", 1, 24)
                 if origen is None: return True
                 destino = self.__leer_entero_en_rango__("Punto destino", 1, 24)
@@ -215,7 +212,6 @@ class CLI:
                 return True
 
             if puede_sacar and opcion == 2:
-                # --- Acción: Sacar ficha ---
                 origen = self.__leer_entero_en_rango__("Punto de origen para sacar", 1, 24)
                 if origen is None: return True
                 try:
@@ -225,14 +221,13 @@ class CLI:
                     print(f"Error: {e}")
                 return True
             
-            # --- Acciones restantes (se ajustan con el 'offset') ---
             if opcion == (2 + op_sacar):
                 self.__mostrar_tablero__()
                 return True
 
             if opcion == (3 + op_sacar):
                 print("Turno finalizado.")
-                return False # TERMINA el turno
+                return False 
 
             if opcion == (4 + op_sacar):
                 c = self.__leer_linea__("¿Seguro que desea salir? (s/n): ").strip().lower()
@@ -261,7 +256,7 @@ class CLI:
             self.__encabezado_turno__()
 
             if not self.__juego__.obtener_movimientos_disponibles():
-                print("No quedan más movimientos.")
+                print("No quedan más movimientos. Turno finalizado.")
                 break 
             
             debe_reincorporar = self.__juego__.jugador_actual_tiene_fichas_en_barra()

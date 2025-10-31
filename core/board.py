@@ -192,3 +192,4 @@ class Tablero:
                     if self.__puntos__[i][0].obtener_color() == 'N':
                         return i 
             return None 
+    

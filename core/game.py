@@ -184,3 +184,13 @@ class Game:
             return False
             
         return True
+
+    def obtener_tablero(self):
+        """
+        Devuelve la instancia del tablero.
+        Útil para la interfaz gráfica.
+        """
+        return self.__tablero__
+
+    
+    

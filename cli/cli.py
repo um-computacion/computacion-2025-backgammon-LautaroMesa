@@ -13,7 +13,6 @@ class CLI:
         return input(prompt)
 
     def __leer_entero_en_rango__(self, prompt: str, minimo: int, maximo: int) -> Optional[int]:
-        # CAMBIO: El prompt ahora muestra [min-max] dinámicamente
         txt = self.__leer_linea__(f"{prompt} [{minimo}-{maximo}]: ").strip()
         try:
             n = int(txt)
@@ -68,11 +67,9 @@ class CLI:
         QSEP   = " | "
         HSEP   = "-"
 
-        # El índice 0 del core se muestra como punto 1
         core_idx_for_user_point = list(range(24))
 
         def fichas_en_punto(punto_usuario: int):
-            # Traduce del (1-24) del usuario al (0-23) del core
             idx = core_idx_for_user_point[punto_usuario - 1]
             fichas = estado.get(idx, [])
             if not fichas:
@@ -145,8 +142,8 @@ class CLI:
 
     def __menu_turno__(self, *, tiene_fichas_en_barra: bool) -> bool:
         """
-        Muestra un menú contextual. Pide al usuario puntos en [1-24]
-        y los traduce a [0-23] para el core.
+        (ACTUALIZADO)
+        Muestra un menú contextual basado en el estado del juego.
         """
         print("\nSeleccione una opción:")
         
@@ -160,11 +157,9 @@ class CLI:
             if opcion is None: return True
 
             if opcion == 1:
-                # CAMBIO: Pide 1-24
                 punto = self.__leer_entero_en_rango__("Punto para reincorporar", 1, 24)
                 if punto is None: return True
                 try:
-                    # TRADUCCIÓN: Pasa (punto - 1) al core
                     self.__juego__.reincorporar_ficha_desde_barra(punto - 1)
                     print("Ficha reincorporada.")
                 except Exception as e:
@@ -183,51 +178,63 @@ class CLI:
                 return True
 
         else:
-            # --- MENÚ NORMAL ---
+            # --- MENÚ NORMAL (ACTUALIZADO) ---
+            
+            # 1. Preguntamos al 'core' si sacar fichas es legal
+            puede_sacar = self.__juego__.jugador_puede_sacar_fichas()
+            
+            # 2. Mostramos las opciones dinámicamente
             print("1. Mover ficha")
-            print("2. Sacar ficha del tablero")
-            print("3. Ver tablero")
-            print("4. Pasar turno (finalizar)")
-            print("5. Salir (abandonar partida)")
+            op_sacar = 0
+            
+            if puede_sacar:
+                print("2. Sacar ficha del tablero")
+                op_sacar = 1 # Creamos un "offset"
+            
+            print(f"{2 + op_sacar}. Ver tablero")
+            print(f"{3 + op_sacar}. Pasar turno (finalizar)")
+            print(f"{4 + op_sacar}. Salir (abandonar partida)")
 
-            opcion = self.__leer_entero_en_rango__("Opción", 1, 5)
+            max_opcion = 4 + op_sacar
+            opcion = self.__leer_entero_en_rango__("Opción", 1, max_opcion)
             if opcion is None: return True
 
+            # 3. Mapeamos la opción a la acción correcta
+            
             if opcion == 1:
-                # CAMBIO: Pide 1-24
+                # --- Acción: Mover ficha ---
                 origen = self.__leer_entero_en_rango__("Punto origen", 1, 24)
                 if origen is None: return True
                 destino = self.__leer_entero_en_rango__("Punto destino", 1, 24)
                 if destino is None: return True
                 try:
-                    # TRADUCCIÓN: Pasa (origen - 1) y (destino - 1) al core
                     self.__juego__.mover_ficha(origen - 1, destino - 1)
                     print("Movimiento realizado.")
                 except Exception as e:
                     print(f"No se pudo mover la ficha: {e}")
                 return True
 
-            if opcion == 2:
-                # CAMBIO: Pide 1-24
+            if puede_sacar and opcion == 2:
+                # --- Acción: Sacar ficha ---
                 origen = self.__leer_entero_en_rango__("Punto de origen para sacar", 1, 24)
                 if origen is None: return True
                 try:
-                    # TRADUCCIÓN: Pasa (origen - 1) al core
                     self.__juego__.sacar_ficha_del_tablero(origen - 1)
                     print("Ficha sacada del tablero.")
                 except Exception as e:
                     print(f"Error: {e}")
                 return True
-
-            if opcion == 3:
+            
+            # --- Acciones restantes (se ajustan con el 'offset') ---
+            if opcion == (2 + op_sacar):
                 self.__mostrar_tablero__()
                 return True
 
-            if opcion == 4:
+            if opcion == (3 + op_sacar):
                 print("Turno finalizado.")
                 return False # TERMINA el turno
 
-            if opcion == 5:
+            if opcion == (4 + op_sacar):
                 c = self.__leer_linea__("¿Seguro que desea salir? (s/n): ").strip().lower()
                 if c in ("s", "si"):
                     print("Fin del juego por decisión del usuario.")

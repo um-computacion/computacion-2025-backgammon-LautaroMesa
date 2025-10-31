@@ -1,10 +1,9 @@
 from core.checker import Ficha 
+from typing import Optional
 
 class Tablero:
     """
     Representa el tablero de Backgammon con 24 puntos.
-    (Versión refactorizada respetando name mangling)
-    Gestiona la ubicación de los *objetos* Ficha de ambos jugadores.
     """
 
     def __init__(self):
@@ -152,31 +151,44 @@ class Tablero:
         else:
             return len(self.__fuera_negro__)
 
-    # --- MÉTODO NUEVO ---
-    
     def todas_las_fichas_en_casa(self, color: str) -> bool:
         """
         Verifica si todas las fichas activas de un jugador están 
         en su cuadrante de casa.
         """
         if color == 'B':
-            # 1. No debe tener fichas en la barra
             if len(self.__barra_blanco__) > 0:
                 return False
-            # 2. No debe tener fichas fuera de casa (puntos 0-17)
-            for i in range(18): # Puntos 0 al 17
+            for i in range(18): 
                 for ficha in self.__puntos__[i]:
                     if ficha.obtener_color() == 'B':
-                        return False # Encontró una ficha 'B' fuera de casa
+                        return False
             return True
         
         else: # color == 'N'
-            # 1. No debe tener fichas en la barra
             if len(self.__barra_negro__) > 0:
                 return False
-            # 2. No debe tener fichas fuera de casa (puntos 6-23)
-            for i in range(6, 24): # Puntos 6 al 23
+            for i in range(6, 24):
                 for ficha in self.__puntos__[i]:
                     if ficha.obtener_color() == 'N':
-                        return False # Encontró una ficha 'N' fuera de casa
+                        return False
             return True
+    
+    def _get_farthest_checker_in_home(self, color: str) -> Optional[int]:
+        """
+        Encuentra el índice del punto más lejano *dentro* de la casa
+        que está ocupado por el color.
+        """
+        if color == 'B':
+            for i in range(18, 24):
+                if self.__puntos__[i]: 
+                    if self.__puntos__[i][0].obtener_color() == 'B':
+                        return i 
+            return None 
+        
+        else: # color == 'N'
+            for i in range(5, -1, -1):
+                if self.__puntos__[i]:
+                    if self.__puntos__[i][0].obtener_color() == 'N':
+                        return i 
+            return None 

@@ -341,7 +341,5 @@ class TestCLI(unittest.TestCase):
         # Evitar que se ejecute el CLI al importar como __main__
         with patch.dict('os.environ', {'BACKGAMMON_SKIP_MAIN': '1'}):
             runpy.run_module('cli.cli', run_name='__main__')
-
-
 if __name__ == '__main__':
     unittest.main()

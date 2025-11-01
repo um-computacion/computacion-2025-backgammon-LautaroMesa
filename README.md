@@ -22,7 +22,7 @@ Pasos sugeridos (Windows PowerShell):
 python -m venv .venv
 
 # Activar el entorno
-.\.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate.ps1 o .venv\Scripts\Activate
 
 # Instalar dependencias
 pip install -r requirements.txt

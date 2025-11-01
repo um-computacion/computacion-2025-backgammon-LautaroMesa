@@ -238,18 +238,29 @@ class CLI:
         
         return True
 
-    def __manejar_turno__(self) -> None:
+    def __manejar_turno__(self) -> bool:
         """
         Maneja el flujo completo de un solo turno.
+        Devuelve True si se debe cambiar el turno desde el bucle principal,
+        o False si el turno ya fue cambiado automáticamente por el core.
         """
         self.__encabezado_turno__()
         self.__leer_linea__("Presione Enter para tirar los dados... ")
         try:
             resultado = self.__juego__.tirar_dados()
             print(f"Resultado de los dados: {resultado}")
+            # Detectar auto-pase (barra bloqueada o sin movimientos) y anunciarlo
+            motivo = self.__juego__.consumir_motivo_auto_pase()
+            if motivo is not None:
+                if motivo == 'barra-bloqueada':
+                    print("Sin reingresos posibles desde la barra. Turno pasado automáticamente.")
+                elif motivo == 'sin-movimientos':
+                    print("Sin movimientos posibles. Turno pasado automáticamente.")
+                # El turno ya cambió dentro del core
+                return False
         except Exception as e:
             print(f"Error al tirar los dados: {e}")
-            return
+            return True
 
         while True:
             self.__mostrar_tablero__()
@@ -257,13 +268,15 @@ class CLI:
 
             if not self.__juego__.obtener_movimientos_disponibles():
                 print("No quedan más movimientos. Turno finalizado.")
-                break 
+                # Se debe cambiar el turno desde el bucle principal
+                return True 
             
             debe_reincorporar = self.__juego__.jugador_actual_tiene_fichas_en_barra()
             
             continuar = self.__menu_turno__(tiene_fichas_en_barra=debe_reincorporar)
             if not continuar:
-                break 
+                # Jugador decidió finalizar su turno manualmente
+                return True 
 
     def __configurar_jugadores__(self) -> tuple[str, str]:
         """Pide los nombres de los jugadores."""
@@ -292,8 +305,9 @@ class CLI:
             print(f"Partida iniciada entre {n1} y {n2}.")
 
             while not self.__juego__.verificar_victoria():
-                self.__manejar_turno__()
-                self.__juego__.cambiar_turno()
+                debe_cambiar = self.__manejar_turno__()
+                if debe_cambiar:
+                    self.__juego__.cambiar_turno()
 
             self.__mostrar_tablero__()
             ganador = self.__juego__.obtener_ganador()
@@ -310,4 +324,7 @@ class CLI:
             print("Verifique la implementación del core y vuelva a intentar.")
             
 if __name__ == "__main__":
-    CLI().ejecutar()
+    import os
+    # Permite saltar la ejecución interactiva durante pruebas automatizadas
+    if os.environ.get("BACKGAMMON_SKIP_MAIN") != "1":
+        CLI().ejecutar()

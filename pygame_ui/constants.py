@@ -70,4 +70,6 @@ HITBOXES_PUNTOS = {}
 HITBOX_BARRA_J1 = None
 HITBOX_BARRA_J2 = None
 HITBOX_BOTON_LANZAR = None
+HITBOX_FUERA_BLANCO = None  # Área clicable para sacar fichas de Blancas
+HITBOX_FUERA_NEGRO = None   # Área clicable para sacar fichas de Negras
 FPS = 180

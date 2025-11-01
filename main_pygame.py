@@ -24,3 +24,4 @@ if __name__ == "__main__":
     # Los nombres se pedirán mediante la interfaz gráfica
     ui_juego = InterfazPygame()
     ui_juego.ejecutar()
+    

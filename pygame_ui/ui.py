@@ -4,6 +4,7 @@ import pygame
 import sys
 import math
 from . import constants as const
+from . import events as ui_events
 # Importamos las clases del core
 from core.game import Game
 from core.board import Tablero 
@@ -215,9 +216,12 @@ class InterfazPygame:
         pos_x = const.MARGEN_TABLERO_X
         ancho_punto = const.ANCHO_PUNTO
         
-        for i in range(12):
-            if i == 6:
+        # Fila inferior: índices 11..0 de izquierda a derecha
+        # Esto muestra en pantalla los puntos 12..1 (como en la CLI)
+        for col in range(12):
+            if col == 6:
                 pos_x += const.ANCHO_BARRA
+            i = 11 - col
             p1 = (pos_x, const.BORDE_INFERIOR_Y)
             p2 = (pos_x + ancho_punto, const.BORDE_INFERIOR_Y)
             p3 = (pos_x + ancho_punto / 2, const.BORDE_INFERIOR_Y - const.ALTO_PUNTO)
@@ -227,9 +231,11 @@ class InterfazPygame:
             )
             pos_x += ancho_punto
             
+        # Fila superior: de izquierda a derecha índices 12..23
+        # Esto hace que los números en pantalla sean 13..24 de izquierda a derecha (como en la CLI)
         pos_x = const.MARGEN_TABLERO_X
-        for i in range(23, 11, -1):
-            if i == 17:
+        for i in range(12, 24):
+            if i == 18:
                 pos_x += const.ANCHO_BARRA
             p1 = (pos_x, const.BORDE_SUPERIOR_Y)
             p2 = (pos_x + ancho_punto, const.BORDE_SUPERIOR_Y)
@@ -250,6 +256,23 @@ class InterfazPygame:
         const.HITBOX_BOTON_LANZAR = pygame.Rect(
             const.CENTRO_X - 50, const.CENTRO_Y - 20, 100, 40
         )
+
+        # Hitboxes para 'Fuera' (panel lateral compacto en margen derecho)
+        margen = int(const.MARGEN_TABLERO_X)
+        panel_ancho = max(36, min(margen - 6, 48))
+        panel_alto = 120
+        panel_x = int(const.ANCHO_PANTALLA - margen + (margen - panel_ancho) // 2)
+        panel_y = int(const.CENTRO_Y - panel_alto / 2)
+        # Barras de progreso (áreas clicables)
+        bar_w = panel_ancho - 10
+        bar_h = 8
+        bar_x = panel_x + (panel_ancho - bar_w) // 2
+        # Blancas abajo
+        bar_y_blancas = panel_y + 20 + 34
+        # Negras arriba
+        bar_y_negras = panel_y + 68 + 34
+        const.HITBOX_FUERA_BLANCO = pygame.Rect(bar_x, bar_y_blancas, bar_w, bar_h)
+        const.HITBOX_FUERA_NEGRO = pygame.Rect(bar_x, bar_y_negras, bar_w, bar_h)
 
     # --- MÉTODOS DE DIBUJADO (DRAW) ---
 
@@ -320,8 +343,8 @@ class InterfazPygame:
                 # Fila superior: de 13 a 24
                 numero_punto = i + 1  # índices 12-23 → puntos 13-24
             else:
-                # Fila inferior: de 12 a 1 (invertido)
-                numero_punto = 12 - i  # índices 0-11 → puntos 12-1
+                # Fila inferior: ahora mapeada derecha→izquierda; numeración directa 1..12 por índice
+                numero_punto = i + 1  # índices 0-11 → puntos 1-12 (ubicados de derecha a izquierda)
             
             # Dibujar el número del punto
             color_texto = (240, 230, 200) if i % 2 == 0 else (60, 40, 20)
@@ -387,15 +410,15 @@ class InterfazPygame:
         self.__dibujar_fichas_barra__(jugador1)
         self.__dibujar_fichas_barra__(jugador2)
 
-        # Fichas en casa
-        self.__dibujar_fichas_casa__(jugador1)
-        self.__dibujar_fichas_casa__(jugador2)
+        # Barra lateral de progreso de fichas fuera (borne-off)
+        self.__dibujar_barra_lateral_progreso__()
 
     def __dibujar_fichas_barra__(self, jugador):
         color = 'B' if jugador.obtener_color() == 'blanco' else 'N'
         
         # Acceder al tablero a través del método público
         tablero = self.__juego__.obtener_tablero()
+
         contador = tablero.obtener_fichas_barra(color)
         
         if contador == 0:
@@ -451,6 +474,75 @@ class InterfazPygame:
         fuente = pygame.font.Font(None, 28)
         texto = fuente.render(str(contador), True, (255, 255, 255))
         self.__pantalla__.blit(texto, (pos_x + const.RADIO_FICHA + 5, pos_y - 10))
+
+    def __dibujar_barra_lateral_progreso__(self):
+        """
+        Dibuja una barra lateral (compacta y elegante) mostrando el progreso
+        de fichas fuera del tablero para ambos jugadores: "X/15" y una barra de progreso.
+        """
+        try:
+            tablero = self.__juego__.obtener_tablero()
+        except Exception:
+            return
+
+        fuera_blancas = tablero.obtener_fichas_fuera('B')
+        fuera_negras = tablero.obtener_fichas_fuera('N')
+
+        # Dimensiones del panel lateral: AJUSTAR AL MARGEN DERECHO para no tapar el tablero
+        margen = int(const.MARGEN_TABLERO_X)
+        panel_ancho = max(36, min(margen - 6, 48))  # encaja en el margen (por defecto 50) sin invadir tablero
+        panel_alto = 120
+        panel_x = int(const.ANCHO_PANTALLA - margen + (margen - panel_ancho) // 2)
+        panel_y = int(const.CENTRO_Y - panel_alto / 2)
+
+        # Fondo del panel con estilo madera y borde dorado
+        panel_rect = pygame.Rect(panel_x, panel_y, panel_ancho, panel_alto)
+        pygame.draw.rect(self.__pantalla__, (80, 60, 40), panel_rect, border_radius=8)
+        pygame.draw.rect(self.__pantalla__, (218, 165, 32), panel_rect, 1, border_radius=8)
+
+        # Título compacto y claro
+        fuente_titulo = pygame.font.SysFont('georgia', 14, bold=True)
+        txt = fuente_titulo.render("Fuera", True, (240, 220, 180))
+        self.__pantalla__.blit(txt, (panel_x + (panel_ancho - txt.get_width()) // 2, panel_y + 4))
+
+        # Helper compacto para cada línea
+        def dibujar_linea(y_base, es_blancas, cantidad):
+            # Ícono de ficha
+            img = self.__assets__["ficha_blanca"] if es_blancas else self.__assets__["ficha_negra"]
+            icono = pygame.transform.smoothscale(img, (16, 16))
+            self.__pantalla__.blit(icono, (panel_x + (panel_ancho - 16) // 2, y_base))
+
+            # Texto "x/15"
+            fuente = pygame.font.Font(None, 18)
+            pref = 'B' if es_blancas else 'N'
+            texto = f"{pref} {cantidad}/15"
+            color_txt = (255, 255, 255) if es_blancas else (40, 40, 40)
+            surf_txt = fuente.render(texto, True, color_txt)
+            self.__pantalla__.blit(surf_txt, (panel_x + (panel_ancho - surf_txt.get_width()) // 2, y_base + 16))
+
+            # Barra de progreso
+            bar_w = panel_ancho - 10
+            bar_h = 8
+            bar_x = panel_x + (panel_ancho - bar_w) // 2
+            bar_y = y_base + 34
+            pygame.draw.rect(self.__pantalla__, (50, 40, 30), (bar_x, bar_y, bar_w, bar_h), border_radius=4)
+            pygame.draw.rect(self.__pantalla__, (120, 100, 80), (bar_x, bar_y, bar_w, bar_h), 1, border_radius=4)
+            pct = max(0.0, min(1.0, cantidad / 15.0))
+            fill_w = int(bar_w * pct)
+            color_fill = (210, 180, 90) if es_blancas else (90, 120, 210)
+            pygame.draw.rect(self.__pantalla__, color_fill, (bar_x, bar_y, fill_w, bar_h), border_radius=4)
+
+        # Líneas compactas sin invadir tablero
+        dibujar_linea(panel_y + 20, True,  fuera_blancas)
+        dibujar_linea(panel_y + 68, False, fuera_negras)
+
+        # Etiqueta de ganador (compacta)
+        if self.__juego__.verificar_victoria():
+            ganador = self.__juego__.obtener_ganador()
+            if ganador is not None:
+                fuente_g = pygame.font.Font(None, 16)
+                surf_g = fuente_g.render("¡Gana!", True, (255, 220, 120))
+                self.__pantalla__.blit(surf_g, (panel_x + (panel_ancho - surf_g.get_width()) // 2, panel_y + panel_alto - 18))
 
     def __dibujar_elementos_ui__(self):
         # Obtener valores de los dados
@@ -575,6 +667,51 @@ class InterfazPygame:
                 hitbox = const.HITBOXES_PUNTOS[indice_punto]
                 self.__pantalla__.blit(s_mover, hitbox.topleft)
 
+        # Resaltar panel 'Fuera' si la ficha seleccionada puede salir con los dados
+        try:
+            if self.__punto_seleccionado__ is not None:
+                jugador = self.__juego__.mostrar_jugador_actual()
+                color_palabra = jugador.obtener_color()  # 'blanco' o 'negro'
+                color_sigla = 'B' if color_palabra == 'blanco' else 'N'
+
+                # Debe poder sacar fichas según el core
+                if self.__juego__.jugador_puede_sacar_fichas():
+                    origen = self.__punto_seleccionado__
+                    movimientos = self.__juego__.obtener_movimientos_disponibles() or []
+
+                    # Verificar que el origen esté dentro de la casa del jugador
+                    en_casa = (0 <= origen <= 5) if color_sigla == 'B' else (18 <= origen <= 23)
+                    if en_casa and movimientos:
+                        # Dado necesario según orientación actual
+                        dado_necesario = (origen + 1) if color_sigla == 'B' else (24 - origen)
+
+                        posible = False
+                        if dado_necesario in movimientos:
+                            posible = True
+                        else:
+                            # Regla de dado mayor: sólo si es la ficha más lejana en casa
+                            tablero = self.__juego__.obtener_tablero()
+                            farthest = tablero._get_farthest_checker_in_home(color_sigla)
+                            if farthest is not None and farthest == origen:
+                                if any(d > dado_necesario for d in movimientos):
+                                    posible = True
+
+                        if posible:
+                            # Dibujar highlight verde sobre el área 'Fuera' del color actual
+                            target_rect = const.HITBOX_FUERA_BLANCO if color_sigla == 'B' else const.HITBOX_FUERA_NEGRO
+                            if target_rect is not None:
+                                overlay = pygame.Surface((target_rect.width, target_rect.height), pygame.SRCALPHA)
+                                overlay.fill((0, 255, 0, 120))
+                                # Expandir un poco para mayor visibilidad
+                                expand = 4
+                                rect_exp = pygame.Rect(target_rect.x - expand, target_rect.y - expand,
+                                                       target_rect.width + 2*expand, target_rect.height + 2*expand)
+                                pygame.draw.rect(self.__pantalla__, (0, 200, 0), rect_exp, border_radius=6)
+                                self.__pantalla__.blit(overlay, target_rect.topleft)
+        except Exception as _:
+            # No interrumpir el render si algo falla aquí
+            pass
+
     def __dibujar_mensaje_ganador__(self):
         if self.__juego__.verificar_victoria(): 
             ganador = self.__juego__.obtener_ganador() 
@@ -692,6 +829,17 @@ class InterfazPygame:
         
         if (not valores_dados_tupla[0]) and const.HITBOX_BOTON_LANZAR.collidepoint(pos):
             self.__juego__.tirar_dados()
+            # Mostrar mensaje si hubo auto-pase de turno
+            motivo = None
+            try:
+                motivo = self.__juego__.consumir_motivo_auto_pase()
+            except Exception:
+                motivo = None
+            if motivo == 'barra-bloqueada':
+                self.__mostrar_error__("Sin reingresos posibles desde la barra. Turno pasado automáticamente.")
+            elif motivo == 'sin-movimientos':
+                self.__mostrar_error__("Sin movimientos posibles. Turno pasado automáticamente.")
+
             self.__punto_seleccionado__ = None
             self.__movimientos_posibles__ = {}
             return
@@ -707,6 +855,25 @@ class InterfazPygame:
             return
 
         if self.__punto_seleccionado__ is not None:
+            # Soporte explícito: si el usuario clickea en 'Fuera' (-1), intenta sacar ficha
+            if indice_punto_clic == -1:
+                try:
+                    if not self.__juego__.jugador_puede_sacar_fichas():
+                        self.__mostrar_error__("Para sacar fichas, todas deben estar en casa")
+                    else:
+                        self.__juego__.sacar_ficha_del_tablero(self.__punto_seleccionado__)
+                        # Verificar victoria y limpiar error
+                        self.__juego__.verificar_victoria()
+                        self.__mensaje_error__ = None
+                except ValueError as e:
+                    self.__mostrar_error__(str(e))
+                except Exception as e:
+                    self.__mostrar_error__(f"Error: {str(e)}")
+                finally:
+                    self.__punto_seleccionado__ = None
+                    self.__movimientos_posibles__ = {}
+                return
+
             if indice_punto_clic in self.__movimientos_posibles__:
                 # Realizar el movimiento
                 try:
@@ -737,6 +904,10 @@ class InterfazPygame:
                 self.__movimientos_posibles__ = {}
                 self.__intentar_seleccionar_punto__(indice_punto_clic)
         else:
+            # Si el usuario hace clic en 'Fuera' sin haber seleccionado una ficha, mostrar ayuda
+            if indice_punto_clic == -1:
+                self.__mostrar_error__("Seleccioná una ficha en casa y luego hacé clic en 'Fuera'")
+                return
             self.__intentar_seleccionar_punto__(indice_punto_clic)
 
     def __intentar_seleccionar_punto__(self, indice_punto):
@@ -768,26 +939,50 @@ class InterfazPygame:
         for valor_dado in set(movimientos_disponibles):
             try:
                 if indice_punto == 24:  # Desde la barra
-                    # Calcular punto de entrada según el color
+                    # Calcular punto de entrada según el color (nueva orientación)
+                    # Blancas reingresan en 0-5 (puntos 1..6)
+                    # Negras reingresan en 18-23 (puntos 19..24)
                     if jugador.obtener_color() == 'blanco':
-                        punto_destino = valor_dado - 1  # Puntos 0-5
+                        punto_destino = valor_dado - 1  # 0..5
                     else:
-                        punto_destino = 24 - valor_dado  # Puntos 18-23
+                        punto_destino = 24 - valor_dado  # 18..23
                     movimientos_posibles[punto_destino] = valor_dado
                 else:
-                    # Movimiento normal
-                    # BLANCAS se mueven HACIA ABAJO (de 23 hacia 0)
-                    # NEGRAS se mueven HACIA ARRIBA (de 0 hacia 23)
+                    # Movimiento normal (nueva orientación)
+                    # BLANCAS avanzan hacia índices mayores (0 -> 23)
+                    # NEGRAS avanzan hacia índices menores (23 -> 0)
                     if jugador.obtener_color() == 'blanco':
-                        punto_destino = indice_punto - valor_dado  # Blancas: restar
+                        punto_destino = indice_punto + valor_dado
                     else:
-                        punto_destino = indice_punto + valor_dado  # Negras: sumar
+                        punto_destino = indice_punto - valor_dado
                     
                     if 0 <= punto_destino <= 23:
                         movimientos_posibles[punto_destino] = valor_dado
-                    elif self.__juego__.jugador_puede_sacar_fichas():
-                        # Puede sacar ficha
-                        movimientos_posibles[-1] = valor_dado  # -1 indica "sacar ficha"
+                    else:
+                        # Destino fuera del tablero (overshoot); considerar sacar ficha si aplica
+                        if self.__juego__.jugador_puede_sacar_fichas():
+                            movimientos_posibles[-1] = valor_dado  # -1 indica "sacar ficha"
+
+                    # Además: incluso si el destino cae dentro del tablero, puede ser legal sacar
+                    # si el dado es EXACTO o si es MAYOR y es la ficha más alejada en casa.
+                    if self.__juego__.jugador_puede_sacar_fichas():
+                        color_char = 'B' if jugador.obtener_color() == 'blanco' else 'N'
+                        en_casa = (0 <= indice_punto <= 5) if color_char == 'B' else (18 <= indice_punto <= 23)
+                        if en_casa:
+                            if color_char == 'B':
+                                dado_necesario = indice_punto + 1
+                            else:
+                                dado_necesario = 24 - indice_punto
+
+                            if valor_dado == dado_necesario:
+                                movimientos_posibles[-1] = valor_dado
+                            elif valor_dado > dado_necesario:
+                                try:
+                                    farthest = self.__juego__.obtener_tablero()._get_farthest_checker_in_home(color_char)
+                                except Exception:
+                                    farthest = None
+                                if farthest is not None and farthest == indice_punto:
+                                    movimientos_posibles[-1] = valor_dado
             except Exception as e:
                 print(f"Error calculando movimiento: {e}")
         
@@ -809,5 +1004,10 @@ class InterfazPygame:
             return 24  # 24 representa la barra
         if color == 'negro' and const.HITBOX_BARRA_J2.collidepoint(pos):
             return 24
+
+        # Clic en área 'Fuera' (borne-off): devuelve -1
+        destino_fuera = ui_events.click_fuera_destino(pos, color)
+        if destino_fuera is not None and self.__juego__.jugador_puede_sacar_fichas():
+            return destino_fuera
             
         return None

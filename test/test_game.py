@@ -190,6 +190,18 @@ class TestGame(unittest.TestCase):
                 mock_sacar.assert_called_with(5, 'N')
                 self.assertEqual(self.juego.__movimientos_disponibles__, [5])
 
+    def test_sacar_ficha_dado_mayor_negro(self):
+        self.juego.cambiar_turno()
+        self.juego.__movimientos_disponibles__ = [6]
+        with patch.object(self.juego.__tablero__, 'todas_las_fichas_en_casa', return_value=True):
+            with patch.object(self.juego.__tablero__, '_get_farthest_checker_in_home', return_value=4):
+                # Ficha más lejana en 4; usar dado mayor 6 para sacar desde 4
+                self.juego.__tablero__.__puntos__[4] = [Ficha('N')]
+                with patch.object(self.juego.__tablero__, 'sacar_ficha') as mock_sacar:
+                    self.juego.sacar_ficha_del_tablero(4)
+                    mock_sacar.assert_called_with(4, 'N')
+                    self.assertEqual(self.juego.__movimientos_disponibles__, [])
+
     def test_sacar_ficha_cuadrante_incorrecto(self):
         self.juego.__movimientos_disponibles__ = [1, 2] 
         with patch.object(self.juego.__tablero__, 'todas_las_fichas_en_casa', return_value=True):
@@ -274,6 +286,121 @@ class TestGame(unittest.TestCase):
         with patch.object(self.juego.__tablero__, 'todas_las_fichas_en_casa', return_value=True):
             with patch.object(self.juego, 'jugador_actual_tiene_fichas_en_barra', return_value=False):
                 self.assertTrue(self.juego.jugador_puede_sacar_fichas())
+
+    def test_getters_basicos(self):
+        # cubrir mostrar_jugador1/2/actual y mostrar_dados
+        j1 = self.juego.mostrar_jugador1()
+        j2 = self.juego.mostrar_jugador2()
+        self.assertIsNotNone(j1)
+        self.assertIsNotNone(j2)
+        self.assertEqual(self.juego.mostrar_jugador_actual(), j1)
+        self.assertIsNotNone(self.juego.mostrar_dados())
+        # cubrir obtener_tablero
+        self.assertIsNotNone(self.juego.obtener_tablero())
+
+    def test_wrapper_auto_pasar_si_barra_bloqueada_early_returns(self):
+        # a) sin fichas en barra -> False
+        self.juego.__movimientos_disponibles__ = [1]
+        self.assertFalse(self.juego.auto_pasar_si_barra_bloqueada())
+        # b) con barra pero sin movimientos -> False
+        self.juego.__tablero__.__barra_blanco__ = [Ficha('B')]
+        self.juego.__movimientos_disponibles__ = []
+        self.assertFalse(self.juego.auto_pasar_si_barra_bloqueada())
+
+    def test_auto_pasar_si_sin_movimientos_early(self):
+        # sin movimientos -> False
+        self.juego.__movimientos_disponibles__ = []
+        self.assertFalse(self.juego.__auto_pasar_si_sin_movimientos__())
+
+    # --- Cobertura adicional (>90%): auto-pase y ramas internas ---
+    def _limpiar_tablero(self):
+        self.juego.__tablero__.__puntos__ = [[] for _ in range(24)]
+        self.juego.__tablero__.__barra_blanco__ = []
+        self.juego.__tablero__.__barra_negro__ = []
+        self.juego.__tablero__.__fuera_blanco__ = []
+        self.juego.__tablero__.__fuera_negro__ = []
+
+    def test_consumir_motivo_auto_pase_default_none(self):
+        self.assertIsNone(self.juego.consumir_motivo_auto_pase())
+        self.assertIsNone(self.juego.consumir_motivo_auto_pase())
+
+    def test_autopass_barra_bloqueada_cuando_ambos_dados(self):
+        self._limpiar_tablero()
+        # Bloquear puntos 0 y 1 para blancas (dados 1 y 2)
+        self.juego.__tablero__.__puntos__[0] = [Ficha('N'), Ficha('N')]
+        self.juego.__tablero__.__puntos__[1] = [Ficha('N'), Ficha('N')]
+        # Poner ficha blanca en barra
+        self.juego.__tablero__.__barra_blanco__.append(Ficha('B'))
+        with patch('core.dice.random.randint', side_effect=[1, 2]):
+            turno_inicial = self.juego.mostrar_jugador_actual()
+            self.juego.tirar_dados()
+            # Debe autopasar
+            self.assertNotEqual(self.juego.mostrar_jugador_actual(), turno_inicial)
+            self.assertEqual(self.juego.consumir_motivo_auto_pase(), 'barra-bloqueada')
+
+    def test_autopass_sin_movimientos_y_sin_barra(self):
+        self._limpiar_tablero()
+        # Una blanca en 18, y bloquear destinos 17 y 16
+        self.juego.__tablero__.__puntos__[18] = [Ficha('B')]
+        self.juego.__tablero__.__puntos__[17] = [Ficha('N'), Ficha('N')]
+        self.juego.__tablero__.__puntos__[16] = [Ficha('N'), Ficha('N')]
+        with patch('core.dice.random.randint', side_effect=[1, 2]):
+            turno_inicial = self.juego.mostrar_jugador_actual()
+            self.juego.tirar_dados()
+            self.assertNotEqual(self.juego.mostrar_jugador_actual(), turno_inicial)
+            self.assertEqual(self.juego.consumir_motivo_auto_pase(), 'sin-movimientos')
+
+    def test_no_autopass_si_hay_reingreso_posible(self):
+        self._limpiar_tablero()
+        # Punto 0 libre, 1 bloqueado; hay ficha blanca en barra
+        self.juego.__tablero__.__puntos__[0] = []
+        self.juego.__tablero__.__puntos__[1] = [Ficha('N'), Ficha('N')]
+        self.juego.__tablero__.__barra_blanco__.append(Ficha('B'))
+        with patch('core.dice.random.randint', side_effect=[1, 2]):
+            turno_inicial = self.juego.mostrar_jugador_actual()
+            self.juego.tirar_dados()
+            self.assertEqual(self.juego.mostrar_jugador_actual(), turno_inicial)
+            self.assertIsNone(self.juego.consumir_motivo_auto_pase())
+
+    def test_no_autopass_si_hay_movimiento_normal(self):
+        self._limpiar_tablero()
+        # Blanca en 18 con 17 libre; dado 1
+        self.juego.__tablero__.__puntos__[18] = [Ficha('B')]
+        self.juego.__tablero__.__puntos__[17] = []
+        with patch('core.dice.random.randint', side_effect=[1, 3]):
+            turno_inicial = self.juego.mostrar_jugador_actual()
+            self.juego.tirar_dados()
+            self.assertEqual(self.juego.mostrar_jugador_actual(), turno_inicial)
+            self.assertIsNone(self.juego.consumir_motivo_auto_pase())
+
+    # Cobertura adicional para __hay_movimiento_legal__ y autopase barra con dados fuera de rango
+    def test_hay_movimiento_legal_bear_off_exact_blancas_y_negras(self):
+        # Blancas: todas en casa, dado exacto para sacar
+        self.juego.__movimientos_disponibles__ = [1]
+        with patch.object(self.juego, 'jugador_puede_sacar_fichas', return_value=True), \
+             patch.object(self.juego.__tablero__, '_get_farthest_checker_in_home', return_value=23):
+            self.juego.__tablero__.__puntos__[23] = [Ficha('B')]
+            self.assertTrue(self.juego.__hay_movimiento_legal__())
+        # Negras: cambiar turno y probar dado exacto para sacar
+        self.juego.cambiar_turno()
+        self.juego.__movimientos_disponibles__ = [1]
+        with patch.object(self.juego, 'jugador_puede_sacar_fichas', return_value=True), \
+             patch.object(self.juego.__tablero__, '_get_farthest_checker_in_home', return_value=0):
+            self.juego.__tablero__.__puntos__[0] = [Ficha('N')]
+            self.assertTrue(self.juego.__hay_movimiento_legal__())
+
+    def test_autopass_barra_bloqueada_con_dado_fuera_de_rango(self):
+        # Turno negras, ficha en barra negra y dado imposible (25) para cubrir p<0
+        self.juego.cambiar_turno()
+        self.juego.__movimientos_disponibles__ = [25]
+        # preparar estado vacío y barra negra
+        self.juego.__tablero__.__puntos__ = [[] for _ in range(24)]
+        self.juego.__tablero__.__barra_negro__ = [Ficha('N')]
+        turno_inicial = self.juego.mostrar_jugador_actual()
+        res = self.juego.auto_pasar_si_barra_bloqueada()
+        self.assertTrue(res)
+        self.assertNotEqual(self.juego.mostrar_jugador_actual(), turno_inicial)
+        self.assertEqual(self.juego.consumir_motivo_auto_pase(), 'barra-bloqueada')
 
 if __name__ == '__main__':
     unittest.main()

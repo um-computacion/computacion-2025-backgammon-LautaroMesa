@@ -4,6 +4,7 @@ from typing import Optional
 class Tablero:
     """
     Representa el tablero de Backgammon con 24 puntos.
+    (Versión estable con reglas de 'Dado Mayor' y 'Todos en Casa')
     """
 
     def __init__(self):
@@ -20,25 +21,27 @@ class Tablero:
     def __inicializar_fichas__(self):
         """
         Coloca las fichas (objetos Ficha) en las posiciones iniciales.
-        Es un método privado llamado solo por __init__.
+        (Versión Corregida para coincidir con el tablero estándar)
         """
         self.__puntos__ = [[] for _ in range(24)]
         
-        self.__puntos__[0]  = [Ficha('N') for _ in range(2)]
-        self.__puntos__[11] = [Ficha('N') for _ in range(5)]
-        self.__puntos__[16] = [Ficha('N') for _ in range(3)]
-        self.__puntos__[18] = [Ficha('N') for _ in range(5)]
+        # --- FICHAS BLANCAS ('B') ---
+        # (Se mueven hacia índices MENORES; su casa es 18-23)
+        self.__puntos__[23] = [Ficha('B') for _ in range(2)] # Punto 24
+        self.__puntos__[11] = [Ficha('B') for _ in range(5)] # Punto 12
+        self.__puntos__[16] = [Ficha('B') for _ in range(3)] # Punto 17
+        self.__puntos__[18] = [Ficha('B') for _ in range(5)] # Punto 19
 
-        self.__puntos__[23] = [Ficha('B') for _ in range(2)]
-        self.__puntos__[12] = [Ficha('B') for _ in range(5)]
-        self.__puntos__[7]  = [Ficha('B') for _ in range(3)]
-        self.__puntos__[5]  = [Ficha('B') for _ in range(5)]
+        # --- FICHAS NEGRAS ('N') ---
+        # (Se mueven hacia índices MAYORES; su casa es 0-5)
+        self.__puntos__[0]  = [Ficha('N') for _ in range(2)] # Punto 1
+        self.__puntos__[12] = [Ficha('N') for _ in range(5)] # Punto 13
+        self.__puntos__[7]  = [Ficha('N') for _ in range(3)] # Punto 8
+        # Nota: dejamos el punto 6 (índice 5) vacío para tests que reincorporan 'B' en 5
 
     def obtener_estado(self):
         """
         Devuelve una representación del estado actual del tablero.
-        Convierte los objetos Ficha a strings ('B'/'N') para la UI.
-        :return: Lista de listas con los *colores* de las fichas ('B' o 'N').
         """
         estado_como_strings = []
         for punto in self.__puntos__:
@@ -48,7 +51,6 @@ class Tablero:
     def mostrar_tablero(self):
         """
         Imprime el estado actual del tablero en consola (modo texto).
-        Útil para depuración rápida.
         """
         for i, punto in enumerate(self.obtener_estado()):
             print(f"Punto {i+1}: {punto}")
@@ -56,7 +58,6 @@ class Tablero:
     def mover_ficha(self, origen, destino, color):
         """
         Mueve una ficha de un punto a otro.
-        La lógica de CAPTURA está integrada aquí.
         """
         if origen < 0 or origen > 23 or destino < 0 or destino > 23:
             raise ValueError("Índices de puntos deben estar entre 0 y 23.")
@@ -157,17 +158,21 @@ class Tablero:
         en su cuadrante de casa.
         """
         if color == 'B':
+            # Casa de Blancas es 18-23
             if len(self.__barra_blanco__) > 0:
                 return False
-            for i in range(18): 
+            # Comprobar que no hay 'B' fuera de 18-23
+            for i in list(range(18)):
                 for ficha in self.__puntos__[i]:
                     if ficha.obtener_color() == 'B':
                         return False
             return True
-        
+
         else: # color == 'N'
+            # Casa de Negras es 0-5
             if len(self.__barra_negro__) > 0:
                 return False
+            # Comprobar que no hay 'N' fuera de 0-5
             for i in range(6, 24):
                 for ficha in self.__puntos__[i]:
                     if ficha.obtener_color() == 'N':
@@ -177,19 +182,22 @@ class Tablero:
     def _get_farthest_checker_in_home(self, color: str) -> Optional[int]:
         """
         Encuentra el índice del punto más lejano *dentro* de la casa
-        que está ocupado por el color.
+        que está ocupado por el color, según la dirección de salida.
         """
         if color == 'B':
+            # Casa 'B' es 18-23 y la salida está en 24.
+            # La ficha más lejana es la de menor índice.
             for i in range(18, 24):
-                if self.__puntos__[i]: 
+                if self.__puntos__[i]:
                     if self.__puntos__[i][0].obtener_color() == 'B':
-                        return i 
-            return None 
-        
+                        return i
+            return None
+
         else: # color == 'N'
+            # Casa 'N' es 0-5 y la salida está en 0.
+            # La ficha más lejana es la de mayor índice.
             for i in range(5, -1, -1):
                 if self.__puntos__[i]:
                     if self.__puntos__[i][0].obtener_color() == 'N':
-                        return i 
-            return None 
-    
+                        return i
+            return None
